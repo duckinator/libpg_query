@@ -51,6 +51,7 @@ typedef void (TestCleanupFn) (void);
 
 /* Functions defined in framework/main.c */
 int			TEST_BOUNDED_STRCMP(char *s1, char *s2);
+void		TEST_ASSERT_NULL_impl(TestState * test_state, char *actual_str, void *actual);
 void		TEST_ASSERT_LIST_EQUAL_impl(TestState * test_state, char *actual_str, List *actual, List *expected);
 void		TEST_ASSERT_LIST_LENGTH_impl(TestState * test_state, char *lst_str, List *lst, size_t expected_len);
 void		TEST_ASSERT_STR_EQUAL_impl(TestState * test_state, char *actual_str, char *actual, char *expected);
@@ -63,6 +64,9 @@ void		TEST_ASSERT_STR_EQUAL_impl(TestState * test_state, char *actual_str, char 
 
 /* Prints the name of the test and the line number. */
 #define TEST_INIT() printf("%s (line %i)\n", __func__, __LINE__)
+
+/* Assert that `actual` is NULL. */
+#define TEST_ASSERT_NULL(actual) TEST_ASSERT_NULL_impl(test_state, #actual, actual)
 
 /* Assert that `actual` and `expected` should contain the same items, but may be in a different order. */
 #define TEST_ASSERT_LIST_EQUAL(actual, expected) TEST_ASSERT_LIST_EQUAL_impl(test_state, #actual, actual, expected)

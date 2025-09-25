@@ -58,9 +58,7 @@ typedef struct
 	List	   *filter_columns; /* List of FilterColumn */
 	List	   *statement_types;	/* List of char * */
 
-	/*
-	 * UNIMPLEMENTED(truncated_query): char * *truncated_query;
-	 */
+	char	  *truncated_query;
 }			Summary;
 
 typedef struct

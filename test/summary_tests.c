@@ -8,7 +8,7 @@ void it_parses_simple_query(TestState* test_state) {
 	TEST_ASSERT_LIST_LENGTH(result.cte_names, 0);
 	TEST_ASSERT_LIST_LENGTH(result.functions, 0);
 	TEST_ASSERT_LIST_LENGTH(result.filter_columns, 1);
-	// UNIMPLEMENTED(truncated_query): assert_eq!(result.truncated_query.is_none(), true);
+	TEST_ASSERT_NULL(result.truncated_query);
 	TEST_ASSERT_LIST_EQUAL(result.statement_types, list_make1("SelectStmt"));
 }
 
@@ -23,7 +23,7 @@ void it_parses_simple_query_with_alias(TestState* test_state) {
 	TEST_ASSERT_LIST_LENGTH(result.cte_names, 0);
 	TEST_ASSERT_LIST_LENGTH(result.functions, 0);
 	TEST_ASSERT_LIST_LENGTH(result.filter_columns, 1);
-	// UNIMPLEMENTED(truncated_query): assert_eq!(result.truncated_query.is_none(), true);
+	TEST_ASSERT_NULL(result.truncated_query);
 	TEST_ASSERT_LIST_EQUAL(result.statement_types, list_make1("SelectStmt"));
 }
 
@@ -65,7 +65,7 @@ void it_handles_basic_query(TestState* test_state) {
 	TEST_ASSERT_LIST_LENGTH(result.cte_names, 0);
 	TEST_ASSERT_LIST_LENGTH(result.functions, 0);
 	TEST_ASSERT_LIST_LENGTH(result.filter_columns, 0);
-	// UNIMPLEMENTED(truncated_query): assert_eq!(result.truncated_query, None);
+	TEST_ASSERT_NULL(result.truncated_query);
 }
 
 void it_handles_join_expression(TestState* test_state) {
@@ -121,7 +121,7 @@ void it_parses_empty_queries(TestState* test_state) {
 	TEST_ASSERT_LIST_LENGTH(result.cte_names, 0);
 	TEST_ASSERT_LIST_LENGTH(result.functions, 0);
 	TEST_ASSERT_LIST_LENGTH(result.filter_columns, 0);
-	// UNIMPLEMENTED(truncated_query): assert_eq!(result.truncated_query.is_none(), true);
+	TEST_ASSERT_NULL(result.truncated_query);
 }
 
 void it_parses_floats_with_leading_dot(TestState* test_state) {
@@ -927,7 +927,7 @@ void it_parses_DROP_TYPE(TestState* test_state) {
 	TEST_ASSERT_LIST_LENGTH(result.cte_names, 0);
 	TEST_ASSERT_LIST_LENGTH(result.functions, 0);
 	TEST_ASSERT_LIST_LENGTH(result.filter_columns, 0);
-	// UNIMPLEMENTED(truncated_query): assert_eq!(result.truncated_query, None);
+	TEST_ASSERT_NULL(result.truncated_query);
 }
 
 // filter column tests

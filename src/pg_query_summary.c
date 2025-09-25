@@ -789,14 +789,11 @@ summary_to_protobuf(PgQuerySummaryParseResult * result, Summary * summary)
 		sr.statement_types[i] = pstrdup(st);
 	}
 
-	/*
-	 * UNIMPLEMENTED(truncated_query):
-	 * if (summary->truncated_query == NULL) {
-	 *   sr.truncated_query = pstrdup("");
-	 * } else {
-	 *   sr.truncated_query = summary->truncated_query;
-	 * }
-	 */
+	if (summary->truncated_query == NULL) {
+		sr.truncated_query = pstrdup("");
+	} else {
+		sr.truncated_query = summary->truncated_query;
+	}
 
 	size_t		len = pg_query__summary_result__get_packed_size(&sr);
 

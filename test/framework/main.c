@@ -25,6 +25,18 @@ TEST_BOUNDED_STRCMP(char *s1, char *s2)
 }
 
 /*
+ * Assert that `actual` is NULL.
+ */
+void
+TEST_ASSERT_NULL_impl(TestState * test_state, char *actual_str, void *actual)
+{
+	if (actual == NULL)
+		TEST_PASS();
+	else
+		TEST_FAIL("  FAIL: expected %s to be NULL\n", actual_str);
+}
+
+/*
  * Assert that `actual` is a string containing the same text as `expected`.
  * (This is wrapped by the TEST_ASSERT_STR_EQUAL macro.)
  */

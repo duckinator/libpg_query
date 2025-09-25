@@ -486,8 +486,7 @@ message SummaryResult {
   }
   repeated FilterColumn filter_columns = 5;
   repeated string statement_types = 6;
-  // UNIMPLEMENTED(truncated_query): string truncated_query = 7; /* optional, empty if truncation limit is -1 */
-
+  string truncated_query = 7; /* optional, empty if truncation limit is -1 */
 }
 "
 
