@@ -658,21 +658,6 @@ pg_query_summary_walk(Summary * summary, Node *tree)
 		summary->filter_columns = state.filter_columns;
 }
 
-/*
- * Given a walked parse tree and summary, store the truncated version in `summary`.
- *
- * Returns NULL on success.
- */
-static PgQueryError * summary_truncate(Summary * summary, Node *tree)
-{
-	return make_pg_query_error("summary_truncate() is not implemented yet");
-
-	/* TODO: implement summary_truncate() */
-
-	/* No error to return. */
-	return NULL;
-}
-
 static PgQuery__SummaryResult__Context ctx_to_protobuf_ctx(ContextType ctx)
 {
 	/*
@@ -857,7 +842,7 @@ pg_query_summary_internal(const char *input, int parser_options, int truncate_li
 	}
 
 	if (result.error == NULL && should_truncate)
-		result.error = summary_truncate(&summary, (Node *) parsetree_and_error.tree);
+		result.error = pg_query_summary_truncate(&summary, (Node *) parsetree_and_error.tree);
 
 	result.summary = summary;
 
