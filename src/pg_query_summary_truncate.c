@@ -5,14 +5,6 @@
 #include "nodes/pg_list.h"
 #include "nodes/nodeFuncs.h"
 
-static bool summary_truncation_options(Node *node, List *truncations);
-
-static int32_t select_target_list_len(List *nodes);
-static int32_t select_values_lists_len(List *nodes);
-static int32_t update_target_list_len(List *nodes);
-static int32_t where_clause_len(Node *node);
-static int32_t cols_len(List *nodes);
-
 enum TruncationAttr {
 	TRUNCATION_TARGET_LIST,
 	TRUNCATION_WHERE_CLAUSE,
@@ -22,11 +14,26 @@ enum TruncationAttr {
 };
 
 typedef struct {
+	List *truncations;
+	int32_t depth;
+} TruncationState;
+
+typedef struct {
 	enum TruncationAttr attr;
 	Node *node;
-	int32_t depth; // FIXME: Do we need this? Where do we get it from?
+	int32_t depth;
 	int32_t length;
 } PossibleTruncation;
+
+static bool summary_truncation_options(Node *node, TruncationState *state);
+static void sort_truncations(Node *node, TruncationState *state);
+static void apply_truncations(Node *node, TruncationState *state);
+
+static int32_t select_target_list_len(List *nodes);
+static int32_t select_values_lists_len(List *nodes);
+static int32_t update_target_list_len(List *nodes);
+static int32_t where_clause_len(Node *node);
+static int32_t cols_len(List *nodes);
 
 /*
  * Given a walked parse tree and summary, store the truncated version in `summary`.
@@ -35,75 +42,70 @@ typedef struct {
  */
 PgQueryError *pg_query_summary_truncate(Summary *summary, Node *node)
 {
-	List *truncations = NULL;
+	TruncationState state = {NULL, 0};
 
 	printf("\n\n! pg_query_summary_truncate()\n");
-	summary_truncation_options(node, truncations);
+	summary_truncation_options(node, &state);
 	return NULL;
 }
 
-static void add_truncation(List *truncations, enum TruncationAttr attr,
-		Node *node, int32_t depth, int32_t length)
+static void add_truncation(TruncationState *state, enum TruncationAttr attr,
+		Node *node, int32_t length)
 {
 	PossibleTruncation *truncation = palloc(sizeof(PossibleTruncation));
 
 	truncation->attr = attr;
 	truncation->node = node;
-	truncation->depth = depth;
+	truncation->depth = state->depth;
 	truncation->length = length;
 
-	truncations = lappend(truncations, truncation);
+	state->truncations = lappend(state->truncations, truncation);
 }
 
-static void add_truncation_where_clause(List *truncations, Node *node, Node *whereClause, int32_t depth)
+static void add_truncation_where_clause(TruncationState *state, Node *node, Node *whereClause)
 {
 	if (whereClause == NULL)
 		return;
 
-	add_truncation(truncations,
+	add_truncation(state,
 			TRUNCATION_WHERE_CLAUSE,
 			node,
-			depth,
 			where_clause_len(whereClause));
 	printf("truncation => ??? / whereClause\n");
 }
 
 static bool
-summary_truncation_options(Node *node, List *truncations)
+summary_truncation_options(Node *node, TruncationState *state)
 {
 	if (node == NULL)
 		return false;
 	printf("    summary_truncation_options()\n");
-
-	int32_t depth = 0; // FIXME
 
 	switch (nodeTag(node))
 	{
 		case T_RawStmt:
 			// For some reason our statement has been trapped in a RawStmt.
 			// Free them.
-			return summary_truncation_options(castNode(RawStmt, node)->stmt, truncations);
+			return summary_truncation_options(castNode(RawStmt, node)->stmt, state);
 
 		case T_SelectStmt:
 			{
 				SelectStmt *stmt = castNode(SelectStmt, node);
 
 				if (stmt->targetList != NULL) {
-					add_truncation(truncations,
+					add_truncation(state,
 							TRUNCATION_TARGET_LIST,
 							node,
-							depth,
 							select_target_list_len(stmt->targetList));
 					printf("truncation => SelectStmt/targetList\n");
 				}
 
-				add_truncation_where_clause(truncations, node, stmt->whereClause, depth);
+				add_truncation_where_clause(state, node, stmt->whereClause);
 
 				if (stmt->valuesLists != NULL) {
-					add_truncation(truncations,
+					add_truncation(state,
 							TRUNCATION_VALUES_LISTS,
 							node,
-							depth,
 							select_values_lists_len(stmt->valuesLists));
 					printf("truncation => SelectStmt/valuesLists\n");
 				}
@@ -116,15 +118,14 @@ summary_truncation_options(Node *node, List *truncations)
 				UpdateStmt *stmt = castNode(UpdateStmt, node);
 
 				if (stmt->targetList != NULL) {
-					add_truncation(truncations,
+					add_truncation(state,
 							TRUNCATION_TARGET_LIST,
 							node,
-							depth,
 							update_target_list_len(stmt->targetList));
 					printf("truncation => UpdateStmt/targetList\n");
 				}
 
-				add_truncation_where_clause(truncations, node, stmt->whereClause, depth);
+				add_truncation_where_clause(state, node, stmt->whereClause);
 
 				break;
 			}
@@ -133,7 +134,7 @@ summary_truncation_options(Node *node, List *truncations)
 			{
 				DeleteStmt *stmt = castNode(DeleteStmt, node);
 
-				add_truncation_where_clause(truncations, node, stmt->whereClause, depth);
+				add_truncation_where_clause(state, node, stmt->whereClause);
 
 				break;
 			}
@@ -142,7 +143,7 @@ summary_truncation_options(Node *node, List *truncations)
 			{
 				CopyStmt *stmt = castNode(CopyStmt, node);
 
-				add_truncation_where_clause(truncations, node, stmt->whereClause, depth);
+				add_truncation_where_clause(state, node, stmt->whereClause);
 
 				break;
 			}
@@ -152,11 +153,7 @@ summary_truncation_options(Node *node, List *truncations)
 				InsertStmt *stmt = castNode(InsertStmt, node);
 
 				if (stmt->cols != NULL) {
-					add_truncation(truncations,
-							TRUNCATION_COLS,
-							node,
-							depth,
-							cols_len(stmt->cols));
+					add_truncation(state, TRUNCATION_COLS, node, cols_len(stmt->cols));
 					printf("truncation => InsertStmt/cols\n");
 				}
 
@@ -166,14 +163,14 @@ summary_truncation_options(Node *node, List *truncations)
 		case T_IndexStmt:
 			{
 				IndexStmt *stmt = castNode(IndexStmt, node);
-				add_truncation_where_clause(truncations, node, stmt->whereClause, depth);
+				add_truncation_where_clause(state, node, stmt->whereClause);
 				break;
 			}
 
 		case T_RuleStmt:
 			{
 				RuleStmt *stmt = castNode(RuleStmt, node);
-				add_truncation_where_clause(truncations, node, stmt->whereClause, depth);
+				add_truncation_where_clause(state, node, stmt->whereClause);
 				break;
 			}
 
@@ -183,10 +180,9 @@ summary_truncation_options(Node *node, List *truncations)
 
 				if (stmt->ctequery != NULL) {
 					int32_t length = 2; // FIXME
-					add_truncation(truncations,
+					add_truncation(state,
 							TRUNCATION_CTE_QUERY,
 							node,
-							depth + 1,
 							length);
 				}
 
@@ -196,7 +192,7 @@ summary_truncation_options(Node *node, List *truncations)
 		case T_InferClause:
 			{
 				InferClause *stmt = castNode(InferClause, node);
-				add_truncation_where_clause(truncations, node, stmt->whereClause, depth);
+				add_truncation_where_clause(state, node, stmt->whereClause);
 				break;
 			}
 
@@ -205,28 +201,29 @@ summary_truncation_options(Node *node, List *truncations)
 				OnConflictClause *stmt = castNode(OnConflictClause, node);
 
 				if (stmt->targetList != NULL) {
-					add_truncation(truncations,
+					add_truncation(state,
 							TRUNCATION_TARGET_LIST,
 							node,
-							depth,
 							update_target_list_len(stmt->targetList));
 					printf("truncation => OnConflictClause/targetList\n");
 				}
 
-				add_truncation_where_clause(truncations, node, stmt->whereClause, depth);
+				add_truncation_where_clause(state, node, stmt->whereClause);
 
 				break;
 			}
 
 		default:
-			printf("    truncation/default (nodeTag = %li)\n", nodeTag(node));
+			printf("    truncation/default (nodeTag = %i)\n", nodeTag(node));
 			break;
 	}
 
 	if (!pg_query_raw_tree_walker_supports(node))
 		return false;
 
-	return raw_expression_tree_walker(node, summary_truncation_options, (void *) truncations);
+	state->depth++;
+
+	return raw_expression_tree_walker(node, summary_truncation_options, (void *) state);
 }
 
 static int32_t select_target_list_len(List *nodes) {
