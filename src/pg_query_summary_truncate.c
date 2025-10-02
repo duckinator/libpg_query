@@ -226,6 +226,102 @@ summary_truncation_options(Node *node, TruncationState *state)
 	return raw_expression_tree_walker(node, summary_truncation_options, (void *) state);
 }
 
+static ColumnRef *dummy_column(void)
+{
+	ColumnRef *colref = makeNode(ColumnRef);
+
+	colref->fields = list_make1(makeString(pstrdup("…")));
+	colref->location = 0;
+
+	return colref;
+}
+
+static ResTarget *dummy_target(void)
+{
+	ResTarget *target = makeNode(ResTarget);
+
+	target->name = pstrdup("…");
+	target->location = 0; // TODO: docs for ResTarget say "-1 if unknown" -- would that be more correct? (see also, dummy_column())
+	target->indirection = NULL;
+	target->val = (Node *) dummy_column();
+
+	return target;
+}
+
+static SelectStmt *dummy_select(List *targetList, Node *whereClause, List *valuesLists)
+{
+	SelectStmt *stmt = makeNode(SelectStmt);
+
+	stmt->distinctClause = NULL; // vec![]
+	stmt->intoClause = NULL;
+	stmt->targetList = targetList;
+	stmt->fromClause = NULL; // vec![]
+	stmt->whereClause = whereClause;
+	stmt->groupClause = NULL; // vec![]
+	stmt->groupDistinct = false; // ???
+	stmt->havingClause = NULL;
+	stmt->windowClause = NULL; // vec![]
+	stmt->valuesLists = valuesLists;
+
+	stmt->sortClause = NULL; // vec![]
+	stmt->limitOffset = NULL;
+	stmt->limitCount = NULL;
+	stmt->limitOption = 1; // ???
+	stmt->lockingClause = NULL; // vec![]
+	stmt->withClause = NULL;
+	stmt->op = 1; // ???
+	stmt->all = false;
+	stmt->larg = NULL;
+	stmt->rarg = NULL;
+
+	return stmt;
+}
+
+static InsertStmt *dummy_insert(List *cols)
+{
+	RangeVar *rv = makeNode(RangeVar);
+	rv->catalogname = NULL;
+	rv->schemaname = NULL;
+	rv->relname = pstrdup("x");
+	rv->inh = true;
+	rv->relpersistence = 'p';
+	rv->alias = NULL;
+	rv->location = 0;
+
+	InsertStmt *stmt = makeNode(InsertStmt);
+	stmt->relation = rv;
+	stmt->cols = cols;
+	stmt->selectStmt = NULL;
+	stmt->onConflictClause = NULL;
+	stmt->returningList = NULL;
+	stmt->withClause = NULL;
+	stmt->override = 1;
+
+	return stmt;
+}
+
+static UpdateStmt *dummy_update(List *targetList)
+{
+	RangeVar *rv = makeNode(RangeVar);
+	rv->catalogname = NULL;
+	rv->schemaname = NULL;
+	rv->relname = pstrdup("x");
+	rv->inh = true;
+	rv->relpersistence = 'p';
+	rv->alias = NULL;
+	rv->location = 0;
+
+	UpdateStmt *stmt = makeNode(UpdateStmt);
+	stmt->relation = rv;
+	stmt->fromClause = NULL;
+	stmt->targetList = targetList;
+	stmt->whereClause = NULL;
+	stmt->returningList = NULL;
+	stmt->withClause = NULL;
+
+	return stmt;
+}
+
 static int32_t select_target_list_len(List *nodes) {
 	//let fragment = dummy_select(nodes, None, vec![]).deparse()?;
 	//Ok(fragment.len() as i32 - 7) // "SELECT "
