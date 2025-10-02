@@ -10,6 +10,65 @@
 
 #include "protobuf/pg_query.pb-c.h"
 
+PgQueryDeparseResult pg_query_deparse_node(Node *node)
+{
+	return pg_query_deparse(list_make1(node));
+}
+
+PgQueryDeparseResult pg_query_deparse(List *stmts)
+{
+	PostgresDeparseOpts opts;
+	MemSet(&opts, 0, sizeof(PostgresDeparseOpts));
+	return pg_query_deparse_opts(stmts, opts);
+}
+
+PgQueryDeparseResult pg_query_deparse_opts(List *stmts, PostgresDeparseOpts opts)
+{
+	PgQueryDeparseResult result = {0};
+	StringInfoData str;
+	MemoryContext ctx;
+	ListCell *lc;
+
+	ctx = pg_query_enter_memory_context();
+
+	PG_TRY();
+	{
+		initStringInfo(&str);
+
+		foreach(lc, stmts) {
+			deparseRawStmtOpts(&str, castNode(RawStmt, lfirst(lc)), opts);
+			if (lnext(stmts, lc))
+				appendStringInfoString(&str, "; ");
+		}
+		result.query = strdup(str.data);
+	}
+	PG_CATCH();
+	{
+		ErrorData* error_data;
+		PgQueryError* error;
+
+		MemoryContextSwitchTo(ctx);
+		error_data = CopyErrorData();
+
+		// Note: This is intentionally malloc so exiting the memory context doesn't free this
+		error = malloc(sizeof(PgQueryError));
+		error->message   = strdup(error_data->message);
+		error->filename  = strdup(error_data->filename);
+		error->funcname  = strdup(error_data->funcname);
+		error->context   = NULL;
+		error->lineno	= error_data->lineno;
+		error->cursorpos = error_data->cursorpos;
+
+		result.error = error;
+		FlushErrorState();
+	};
+	PG_END_TRY();
+
+	pg_query_exit_memory_context(ctx);
+
+	return result;
+}
+
 PgQueryDeparseResult pg_query_deparse_protobuf(PgQueryProtobuf parse_tree)
 {
 	PostgresDeparseOpts opts;

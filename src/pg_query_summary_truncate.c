@@ -248,7 +248,7 @@ static ResTarget *dummy_target(void)
 	return target;
 }
 
-static SelectStmt *dummy_select(List *targetList, Node *whereClause, List *valuesLists)
+static Node *dummy_select(List *targetList, Node *whereClause, List *valuesLists)
 {
 	SelectStmt *stmt = makeNode(SelectStmt);
 
@@ -274,10 +274,10 @@ static SelectStmt *dummy_select(List *targetList, Node *whereClause, List *value
 	stmt->larg = NULL;
 	stmt->rarg = NULL;
 
-	return stmt;
+	return (Node *) stmt;
 }
 
-static InsertStmt *dummy_insert(List *cols)
+static Node *dummy_insert(List *cols)
 {
 	RangeVar *rv = makeNode(RangeVar);
 	rv->catalogname = NULL;
@@ -297,10 +297,10 @@ static InsertStmt *dummy_insert(List *cols)
 	stmt->withClause = NULL;
 	stmt->override = 1;
 
-	return stmt;
+	return (Node *) stmt;
 }
 
-static UpdateStmt *dummy_update(List *targetList)
+static Node *dummy_update(List *targetList)
 {
 	RangeVar *rv = makeNode(RangeVar);
 	rv->catalogname = NULL;
@@ -319,35 +319,80 @@ static UpdateStmt *dummy_update(List *targetList)
 	stmt->returningList = NULL;
 	stmt->withClause = NULL;
 
-	return stmt;
+	return (Node *) stmt;
 }
 
 static int32_t select_target_list_len(List *nodes) {
-	//let fragment = dummy_select(nodes, None, vec![]).deparse()?;
-	//Ok(fragment.len() as i32 - 7) // "SELECT "
-	return 1; // FIXME
+	PgQueryDeparseResult result = pg_query_deparse_node(dummy_select(nodes, NULL, NULL));
+
+	if (result.error) {
+		printf("FIXME: ACTUALLY DO SOMETHING ABOUT THIS ERROR");
+		return -1;
+	}
+
+	int32_t length = (int32_t)strlen(result.query) - 7; // "SELECT "
+
+	pg_query_free_deparse_result(result);
+
+	return length;
 }
 
 static int32_t select_values_lists_len(List *nodes) {
-	//let fragment = dummy_select(vec![], None, nodes).deparse()?;
-	//Ok(fragment.len() as i32 - 7) // "SELECT "
-	return 2; // FIXME
+	PgQueryDeparseResult result = pg_query_deparse_node(dummy_select(NULL, NULL, nodes));
+
+	if (result.error) {
+		printf("FIXME: ACTUALLY DO SOMETHING ABOUT THIS ERROR");
+		return -1;
+	}
+
+	int32_t length = (int32_t)strlen(result.query) - 7; // "SELECT "
+
+	pg_query_free_deparse_result(result);
+
+	return length;
 }
 
 static int32_t update_target_list_len(List *nodes) {
-	//let fragment = dummy_update(nodes).deparse()?;
-	//Ok(fragment.len() as i32 - 13) // "UPDATE x SET "
-	return 3; // FIXME
+	PgQueryDeparseResult result = pg_query_deparse_node(dummy_update(nodes));
+
+	if (result.error) {
+		printf("FIXME");
+		return -1;
+	}
+
+	int32_t length = (int32_t)strlen(result.query) - 13; // "UPDATE x SET "
+
+	pg_query_free_deparse_result(result);
+
+	return length;
 }
 
 static int32_t where_clause_len(Node *node) {
-	//let fragment = dummy_select(vec![], Some(node), vec![]).deparse()?;
-	//Ok(fragment.len() as i32 - 13) // "SELECT WHERE "
-	return 4; // FIXME
+	PgQueryDeparseResult result = pg_query_deparse_node(dummy_select(NULL, node, NULL));
+
+	if (result.error) {
+		printf("FIXME");
+		return -1;
+	}
+
+	int32_t length = (int32_t)strlen(result.query) - 13; // "SELECT WHERE "
+
+	pg_query_free_deparse_result(result);
+
+	return length;
 }
 
 static int32_t cols_len(List *nodes) {
-	//let fragment = dummy_insert(nodes).deparse()?;
-	//Ok(fragment.len() as i32 - 31) // "INSERT INTO x () DEFAULT VALUES"
-	return 5;
+	PgQueryDeparseResult result = pg_query_deparse_node(dummy_insert(nodes));
+
+	if (result.error) {
+		printf("FIXME");
+		return -1;
+	}
+
+	int32_t length = (int32_t)strlen(result.query) - 31; // "INSERT INTO x () DEFAULT VALUES"
+
+	pg_query_free_deparse_result(result);
+
+	return length;
 }
