@@ -49,6 +49,17 @@ PgQueryError *pg_query_summary_truncate(Summary *summary, Node *node)
 	return NULL;
 }
 
+static char *truncate_str(char *str, size_t max_chars)
+{
+	// FIXME: This WILL blow up for multi-byte UTF-8 characters, since it's going
+	// by byte instead of character. I think C has functions to deal with this,
+	// I just haven't learned about them yet. -duckinator
+	char *dst = palloc(sizeof(char) * (max_chars + 1));
+	strncpy(dst, str, max_chars);
+	dst[max_chars] = 0; // set null terminator
+	return dst;
+}
+
 static void add_truncation(TruncationState *state, enum TruncationAttr attr,
 		Node *node, int32_t length)
 {
