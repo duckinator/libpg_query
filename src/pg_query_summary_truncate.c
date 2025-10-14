@@ -372,6 +372,7 @@ static int32_t select_target_list_len(List *nodes) {
 
 	if (result.error) {
 		printf("FIXME: ACTUALLY DO SOMETHING ABOUT THIS ERROR");
+		pg_query_free_deparse_result(result);
 		return -1;
 	}
 
@@ -387,6 +388,7 @@ static int32_t select_values_lists_len(List *nodes) {
 
 	if (result.error) {
 		printf("FIXME: ACTUALLY DO SOMETHING ABOUT THIS ERROR");
+		pg_query_free_deparse_result(result);
 		return -1;
 	}
 
@@ -402,6 +404,7 @@ static int32_t update_target_list_len(List *nodes) {
 
 	if (result.error) {
 		printf("FIXME");
+		pg_query_free_deparse_result(result);
 		return -1;
 	}
 
@@ -417,6 +420,7 @@ static int32_t where_clause_len(Node *node) {
 
 	if (result.error) {
 		printf("FIXME");
+		pg_query_free_deparse_result(result);
 		return -1;
 	}
 
@@ -432,6 +436,7 @@ static int32_t cols_len(List *nodes) {
 
 	if (result.error) {
 		printf("FIXME");
+		pg_query_free_deparse_result(result);
 		return -1;
 	}
 
