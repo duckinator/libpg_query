@@ -5,6 +5,45 @@
 #include "nodes/pg_list.h"
 #include "nodes/nodeFuncs.h"
 
+/* FIXME:
+ * Temporarily copied from https://github.com/postgres/postgres/blob/REL_17_STABLE/src/backend/nodes/list.c#L1674
+ * list_sort() needs to be imported properly.
+ * check_list_invariants() is only copied because it's static.
+ */
+
+static void
+check_list_invariants(const List *list)
+{
+	if (list == NIL)
+		return;
+
+	Assert(list->length > 0);
+	Assert(list->length <= list->max_length);
+	Assert(list->elements != NULL);
+
+	Assert(list->type == T_List ||
+		   list->type == T_IntList ||
+		   list->type == T_OidList ||
+		   list->type == T_XidList);
+}
+
+void
+list_sort(List *list, list_sort_comparator cmp)
+{
+	typedef int (*qsort_comparator) (const void *a, const void *b);
+	int			len;
+
+	check_list_invariants(list);
+
+	/* Nothing to do if there's less than two elements */
+	len = list_length(list);
+	if (len > 1)
+		qsort(list->elements, len, sizeof(ListCell), (qsort_comparator) cmp);
+}
+
+/* ========================= */
+
+
 enum TruncationAttr {
 	TRUNCATION_TARGET_LIST,
 	TRUNCATION_WHERE_CLAUSE,
@@ -26,8 +65,9 @@ typedef struct {
 } PossibleTruncation;
 
 static bool summary_truncation_options(Node *node, TruncationState *state);
-static void sort_truncations(Node *node, TruncationState *state);
+//static void sort_truncations(Node *node, TruncationState *state);
 static void apply_truncations(Node *node, TruncationState *state);
+static int cmp_possible_truncation_depth(const ListCell *a, const ListCell *b);
 
 static int32_t select_target_list_len(List *nodes);
 static int32_t select_values_lists_len(List *nodes);
@@ -46,6 +86,8 @@ PgQueryError *pg_query_summary_truncate(Summary *summary, Node *node)
 
 	printf("\n\n! pg_query_summary_truncate()\n");
 	summary_truncation_options(node, &state);
+	list_sort(state.truncations, cmp_possible_truncation_depth);
+	apply_truncations(node, &state);
 	return NULL;
 }
 
@@ -235,6 +277,18 @@ summary_truncation_options(Node *node, TruncationState *state)
 	state->depth++;
 
 	return raw_expression_tree_walker(node, summary_truncation_options, (void *) state);
+}
+
+static int cmp_possible_truncation_depth(const ListCell *a, const ListCell *b)
+{
+	const PossibleTruncation *pt_a = lfirst(a);
+	const PossibleTruncation *pt_b = lfirst(b);
+
+	return pt_a->depth - pt_b->depth;
+}
+
+static void apply_truncations(Node *node, TruncationState *state)
+{
 }
 
 static ColumnRef *dummy_column(void)
