@@ -176,8 +176,17 @@ TEST_ASSERT_LIST_EQUAL_impl(TestState * test_state, char *actual_str, List *actu
 	free(exp_ary);
 }
 
+// Given a list of tests, cleanup function, and use_mctx,
+// run tests and return the results.
+//
+// If `use_mctx` is true, a Postgres MemoryContex is enter before the test is run,
+// and exited after the cleanup function is called.
+//
+// This function exists so test_run() and test_run_with_mctx() can share an
+// implementation.
+static
 int
-test_run(TestFn * tests[], TestCleanupFn * test_cleanup)
+test_run_impl(TestFn * tests[], TestCleanupFn * test_cleanup, bool use_mctx)
 {
 	TestState	test_state = {0};
 
@@ -185,9 +194,16 @@ test_run(TestFn * tests[], TestCleanupFn * test_cleanup)
 
 	for (size_t i = 0; tests[i] != NULL; i++)
 	{
+		MemoryContext ctx;
+		if (use_mctx)
+			ctx = pg_query_enter_memory_context();
+
 		tests[i] (&test_state);
 		if (test_cleanup != NULL)
 			test_cleanup();
+
+		if (use_mctx)
+			pg_query_exit_memory_context(ctx);
 	}
 
 	bool		failed = (test_state.failed > 0);
@@ -200,26 +216,13 @@ test_run(TestFn * tests[], TestCleanupFn * test_cleanup)
 }
 
 int
+test_run(TestFn * tests[], TestCleanupFn * test_cleanup)
+{
+	return test_run_impl(tests, test_cleanup, false);
+}
+
+int
 test_run_with_mcxt(TestFn * tests[], TestCleanupFn * test_cleanup)
 {
-	TestState	test_state = {0};
-
-	pg_query_init();
-
-	for (size_t i = 0; tests[i] != NULL; i++)
-	{
-		MemoryContext ctx = pg_query_enter_memory_context();
-		tests[i] (&test_state);
-		if (test_cleanup != NULL)
-			test_cleanup();
-		pg_query_exit_memory_context(ctx);
-	}
-
-	bool		failed = (test_state.failed > 0);
-
-	printf("\ntest result: %s. %li passed; %li failed; %li skipped\n", failed ? "FAILED" : "ok", test_state.passed, test_state.failed, test_state.skipped);
-
-	pg_query_exit();
-
-	return failed ? EXIT_FAILURE : EXIT_SUCCESS;
+	return test_run_impl(tests, test_cleanup, true);
 }
