@@ -307,7 +307,6 @@ static ResTarget *dummy_target(void)
 
 	target->name = pstrdup("…");
 	target->location = 0; // TODO: docs for ResTarget say "-1 if unknown" -- would that be more correct? (see also, dummy_column())
-	target->indirection = NULL;
 	target->val = (Node *) dummy_column();
 
 	return target;
@@ -348,21 +347,14 @@ static Node *dummy_insert(List *cols)
 static Node *dummy_update(List *targetList)
 {
 	RangeVar *rv = makeNode(RangeVar);
-	rv->catalogname = NULL;
-	rv->schemaname = NULL;
 	rv->relname = pstrdup("x");
 	rv->inh = true;
 	rv->relpersistence = 'p';
-	rv->alias = NULL;
 	rv->location = 0;
 
 	UpdateStmt *stmt = makeNode(UpdateStmt);
 	stmt->relation = rv;
-	stmt->fromClause = NULL;
 	stmt->targetList = targetList;
-	stmt->whereClause = NULL;
-	stmt->returningList = NULL;
-	stmt->withClause = NULL;
 
 	return (Node *) stmt;
 }
