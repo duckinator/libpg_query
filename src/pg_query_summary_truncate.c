@@ -317,27 +317,14 @@ static Node *dummy_select(List *targetList, Node *whereClause, List *valuesLists
 {
 	SelectStmt *stmt = makeNode(SelectStmt);
 
-	stmt->distinctClause = NULL; // vec![]
-	stmt->intoClause = NULL;
 	stmt->targetList = targetList;
-	stmt->fromClause = NULL; // vec![]
 	stmt->whereClause = whereClause;
-	stmt->groupClause = NULL; // vec![]
 	stmt->groupDistinct = false; // ???
-	stmt->havingClause = NULL;
-	stmt->windowClause = NULL; // vec![]
 	stmt->valuesLists = valuesLists;
 
-	stmt->sortClause = NULL; // vec![]
-	stmt->limitOffset = NULL;
-	stmt->limitCount = NULL;
 	stmt->limitOption = 1; // ???
-	stmt->lockingClause = NULL; // vec![]
-	stmt->withClause = NULL;
 	stmt->op = 1; // ???
 	stmt->all = false;
-	stmt->larg = NULL;
-	stmt->rarg = NULL;
 
 	return (Node *) stmt;
 }
@@ -345,21 +332,14 @@ static Node *dummy_select(List *targetList, Node *whereClause, List *valuesLists
 static Node *dummy_insert(List *cols)
 {
 	RangeVar *rv = makeNode(RangeVar);
-	rv->catalogname = NULL;
-	rv->schemaname = NULL;
 	rv->relname = pstrdup("x");
 	rv->inh = true;
 	rv->relpersistence = 'p';
-	rv->alias = NULL;
 	rv->location = 0;
 
 	InsertStmt *stmt = makeNode(InsertStmt);
 	stmt->relation = rv;
 	stmt->cols = cols;
-	stmt->selectStmt = NULL;
-	stmt->onConflictClause = NULL;
-	stmt->returningList = NULL;
-	stmt->withClause = NULL;
 	stmt->override = 1;
 
 	return (Node *) stmt;
