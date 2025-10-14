@@ -204,6 +204,11 @@ test_run_impl(TestFn * tests[], TestCleanupFn * test_cleanup, bool use_mctx)
 
 		if (use_mctx)
 			pg_query_exit_memory_context(ctx);
+
+#ifdef TEST_FAIL_FAST
+		if (test_state.failed > 0)
+			break;
+#endif
 	}
 
 	bool		failed = (test_state.failed > 0);
