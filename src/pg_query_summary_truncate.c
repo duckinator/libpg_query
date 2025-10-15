@@ -100,10 +100,11 @@ static char *truncate_str(char *str, size_t max_chars)
 	// FIXME: This WILL blow up for multi-byte UTF-8 characters, since it's going
 	// by byte instead of character. I think C has functions to deal with this,
 	// I just haven't learned about them yet. -duckinator
-	char *dst = palloc(sizeof(char) * (max_chars + 1));
-	strncpy(dst, str, max_chars);
-	dst[max_chars] = 0; // set null terminator
-	return dst;
+	if (strlen(str) > max_chars) {
+		strncpy(str + max_chars - 3, "...", 4);
+		str[max_chars] = 0; // set null terminator
+	}
+	return str;
 }
 
 static void add_truncation(TruncationState *state, enum TruncationAttr attr,
@@ -320,8 +321,10 @@ static PgQueryError *apply_truncations(Summary *summary, Node *tree, TruncationS
 	else
 		result = pg_query_deparse_node(tree);
 
+	char *original_output = result.query;
+
 	if (strlen(result.query) <= truncation_limit) {
-		summary->truncated_query = result.query;
+		summary->truncated_query = original_output;
 		return NULL;
 	}
 
@@ -335,10 +338,12 @@ static PgQueryError *apply_truncations(Summary *summary, Node *tree, TruncationS
 		if (IsA(node, SelectStmt) && attr == TRUNCATION_TARGET_LIST) {
 			SelectStmt *stmt = castNode(SelectStmt, node);
 			stmt->targetList = list_make1(dummy_target());
+			printf("Select/targetList\n");
 		}
 		else if (IsA(node, SelectStmt) && attr == TRUNCATION_WHERE_CLAUSE) {
 			SelectStmt *stmt = castNode(SelectStmt, node);
 			stmt->whereClause = (Node *) dummy_column();
+			printf("Select/whereClause\n");
 		}
 		else if (IsA(node, SelectStmt) && attr == TRUNCATION_VALUES_LISTS) {
 			SelectStmt *stmt = castNode(SelectStmt, node);
@@ -429,7 +434,9 @@ static PgQueryError *apply_truncations(Summary *summary, Node *tree, TruncationS
 		}
 	}
 
-	// It seems weird to return no error if we fail to find a valid truncation.
+	printf("Falling back to crude truncation.\n");
+	truncate_str(original_output, truncation_limit);
+	summary->truncated_query = original_output;
 	return NULL;
 }
 

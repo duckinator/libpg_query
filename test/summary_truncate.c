@@ -24,6 +24,14 @@ static Summary summary(char *query, int parser_options, int truncate_limit)
 	return summary;
 }
 
+void it_falls_back_to_clipping_the_end(TestState* test_state) {
+	// This test should only be able to pass if we successfully just
+	// chop things off the end until it fits.
+	TEST_INIT();
+	char* query = "SELECT a";
+	Summary result = summary(query, 0, 4);
+	TEST_ASSERT_STR_EQUAL(result.truncated_query, "S...");
+}
 
 void it_omits_target_list(TestState* test_state) {
     TEST_INIT();
@@ -152,6 +160,7 @@ int
 main(int argc, char *argv[])
 {
 	TestFn	   *tests[] = {
+		&it_falls_back_to_clipping_the_end,
 		&it_omits_target_list,
 		&it_omits_CTE_definition,
 		&it_omits_WHERE_clause,
