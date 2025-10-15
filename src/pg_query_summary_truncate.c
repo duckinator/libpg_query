@@ -84,7 +84,6 @@ PgQueryError *pg_query_summary_truncate(Summary *summary, Node *tree)
 {
 	TruncationState state = {NULL, 0};
 
-	printf("\n\n! pg_query_summary_truncate()\n");
 	summary_truncation_options(tree, &state);
 	list_sort(state.truncations, cmp_possible_truncation_depth);
 	apply_truncations(tree, &state);
@@ -124,7 +123,6 @@ static void add_truncation_where_clause(TruncationState *state, Node *node, Node
 			TRUNCATION_WHERE_CLAUSE,
 			node,
 			where_clause_len(whereClause));
-	printf("truncation => ??? / whereClause\n");
 }
 
 static bool
@@ -132,7 +130,6 @@ summary_truncation_options(Node *node, TruncationState *state)
 {
 	if (node == NULL)
 		return false;
-	printf("    summary_truncation_options()\n");
 
 	switch (nodeTag(node))
 	{
@@ -145,23 +142,19 @@ summary_truncation_options(Node *node, TruncationState *state)
 			{
 				SelectStmt *stmt = castNode(SelectStmt, node);
 
-				if (stmt->targetList != NULL) {
+				if (stmt->targetList != NULL)
 					add_truncation(state,
 							TRUNCATION_TARGET_LIST,
 							node,
 							select_target_list_len(stmt->targetList));
-					printf("truncation => SelectStmt/targetList\n");
-				}
 
 				add_truncation_where_clause(state, node, stmt->whereClause);
 
-				if (stmt->valuesLists != NULL) {
+				if (stmt->valuesLists != NULL)
 					add_truncation(state,
 							TRUNCATION_VALUES_LISTS,
 							node,
 							select_values_lists_len(stmt->valuesLists));
-					printf("truncation => SelectStmt/valuesLists\n");
-				}
 
 				break;
 			}
@@ -170,13 +163,11 @@ summary_truncation_options(Node *node, TruncationState *state)
 			{
 				UpdateStmt *stmt = castNode(UpdateStmt, node);
 
-				if (stmt->targetList != NULL) {
+				if (stmt->targetList != NULL)
 					add_truncation(state,
 							TRUNCATION_TARGET_LIST,
 							node,
 							update_target_list_len(stmt->targetList));
-					printf("truncation => UpdateStmt/targetList\n");
-				}
 
 				add_truncation_where_clause(state, node, stmt->whereClause);
 
@@ -205,10 +196,8 @@ summary_truncation_options(Node *node, TruncationState *state)
 			{
 				InsertStmt *stmt = castNode(InsertStmt, node);
 
-				if (stmt->cols != NULL) {
+				if (stmt->cols != NULL)
 					add_truncation(state, TRUNCATION_COLS, node, cols_len(stmt->cols));
-					printf("truncation => InsertStmt/cols\n");
-				}
 
 				break;
 			}
@@ -253,13 +242,11 @@ summary_truncation_options(Node *node, TruncationState *state)
 			{
 				OnConflictClause *stmt = castNode(OnConflictClause, node);
 
-				if (stmt->targetList != NULL) {
+				if (stmt->targetList != NULL)
 					add_truncation(state,
 							TRUNCATION_TARGET_LIST,
 							node,
 							update_target_list_len(stmt->targetList));
-					printf("truncation => OnConflictClause/targetList\n");
-				}
 
 				add_truncation_where_clause(state, node, stmt->whereClause);
 
@@ -267,7 +254,6 @@ summary_truncation_options(Node *node, TruncationState *state)
 			}
 
 		default:
-			printf("    truncation/default (nodeTag = %i)\n", nodeTag(node));
 			break;
 	}
 
@@ -420,7 +406,7 @@ static Node *dummy_update(List *targetList)
 
 static void print_pg_query_error(PgQueryError *error, const char *func)
 {
-	printf("ERROR from %s:\n  %s:%s:%i: %s\n",
+	fprintf(stderr, "ERROR from %s:\n  %s:%s:%i: %s\n",
 			func, error->funcname, error->filename, error->lineno, error->message);
 }
 
