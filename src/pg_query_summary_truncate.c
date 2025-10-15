@@ -64,9 +64,9 @@ typedef struct {
 	int32_t length;
 } PossibleTruncation;
 
-static bool summary_truncation_options(Node *node, TruncationState *state);
+static bool summary_truncation_options(Node *tree, TruncationState *state);
 //static void sort_truncations(Node *node, TruncationState *state);
-static void apply_truncations(Node *node, TruncationState *state);
+static void apply_truncations(Node *tree, TruncationState *state);
 static int cmp_possible_truncation_depth(const ListCell *a, const ListCell *b);
 
 static int32_t select_target_list_len(List *nodes);
@@ -80,14 +80,14 @@ static int32_t cols_len(List *nodes);
  *
  * Returns NULL on success.
  */
-PgQueryError *pg_query_summary_truncate(Summary *summary, Node *node)
+PgQueryError *pg_query_summary_truncate(Summary *summary, Node *tree)
 {
 	TruncationState state = {NULL, 0};
 
 	printf("\n\n! pg_query_summary_truncate()\n");
-	summary_truncation_options(node, &state);
+	summary_truncation_options(tree, &state);
 	list_sort(state.truncations, cmp_possible_truncation_depth);
-	apply_truncations(node, &state);
+	apply_truncations(tree, &state);
 	return NULL;
 }
 
@@ -287,8 +287,67 @@ static int cmp_possible_truncation_depth(const ListCell *a, const ListCell *b)
 	return pt_a->depth - pt_b->depth;
 }
 
-static void apply_truncations(Node *node, TruncationState *state)
+static void apply_truncations(Node *tree, TruncationState *state)
 {
+	List *truncations = state->truncations;
+
+	ListCell *lc;
+	foreach(lc, state->truncations) {
+		PossibleTruncation *truncation = lfirst(lc);
+
+		Node *node = truncation->node;
+		enum TruncationAttr attr = truncation->attr;
+
+		if (IsA(node, SelectStmt) && attr == TRUNCATION_TARGET_LIST) {
+			printf("Select/targetList\n");
+		}
+		else if (IsA(node, SelectStmt) && attr == TRUNCATION_WHERE_CLAUSE) {
+			printf("Select/whereClause\n");
+		}
+		else if (IsA(node, SelectStmt) && attr == TRUNCATION_VALUES_LISTS) {
+			printf("Select/valuesLists\n");
+		}
+		else if (IsA(node, UpdateStmt) && attr == TRUNCATION_TARGET_LIST) {
+			printf("UpdateStmt/targetList\n");
+		}
+		else if (IsA(node, UpdateStmt) && attr == TRUNCATION_WHERE_CLAUSE) {
+			printf("UpdateStmt/whereClause\n");
+		}
+		else if (IsA(node, DeleteStmt) && attr == TRUNCATION_WHERE_CLAUSE) {
+			printf("Delete/whereClause\n");
+		}
+		else if (IsA(node, CopyStmt) && attr == TRUNCATION_WHERE_CLAUSE) {
+			printf("Copy/whereClause\n");
+		}
+		else if (IsA(node, InsertStmt) && attr == TRUNCATION_COLS) {
+			printf("Insert/cols\n");
+		}
+		else if (IsA(node, IndexStmt) && attr == TRUNCATION_WHERE_CLAUSE) {
+			printf("Index/whereClause\n");
+		}
+		else if (IsA(node, RuleStmt) && attr == TRUNCATION_WHERE_CLAUSE) {
+			printf("Rule/whereClause\n");
+		}
+		else if (IsA(node, CommonTableExpr) && attr == TRUNCATION_CTE_QUERY) {
+			printf("CTE/cteQuery\n");
+		}
+		else if (IsA(node, InferClause) && attr == TRUNCATION_WHERE_CLAUSE) {
+			printf("InferClause/whereClause\n");
+		}
+		else if (IsA(node, OnConflictClause) && attr == TRUNCATION_TARGET_LIST) {
+			printf("OnConflictClause/targetList\n");
+		}
+		else if (IsA(node, OnConflictClause) && attr == TRUNCATION_WHERE_CLAUSE) {
+			printf("OnConflictClause/whereClause\n");
+		}
+		else
+		{
+			fprintf(stderr, "ERROR: unimplemented truncation");
+			exit(1);
+		}
+
+		foreach_delete_current(state->truncations, lc);
+	}
 }
 
 static ColumnRef *dummy_column(void)
