@@ -313,6 +313,18 @@ static PgQueryError *apply_truncations(Summary *summary, Node *tree, TruncationS
 {
 	List *truncations = state->truncations;
 
+	PgQueryDeparseResult result;
+
+	if (IsA(tree, List))
+		result = pg_query_deparse((List *) tree);
+	else
+		result = pg_query_deparse_node(tree);
+
+	if (strlen(result.query) <= truncation_limit) {
+		summary->truncated_query = result.query;
+		return NULL;
+	}
+
 	ListCell *lc;
 	foreach(lc, state->truncations) {
 		PossibleTruncation *truncation = lfirst(lc);
