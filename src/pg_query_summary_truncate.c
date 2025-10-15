@@ -353,6 +353,8 @@ static PgQueryError *apply_truncations(Summary *summary, Node *tree, TruncationS
 		return result.error;
 	else
 		summary->truncated_query = result.query;
+
+	return NULL;
 }
 
 static ColumnRef *dummy_column(void)
