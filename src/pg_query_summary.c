@@ -842,7 +842,7 @@ pg_query_summary_internal(const char *input, int parser_options, int truncate_li
 	}
 
 	if (result.error == NULL && should_truncate)
-		result.error = pg_query_summary_truncate(&summary, (Node *) parsetree_and_error.tree);
+		result.error = pg_query_summary_truncate(&summary, (Node *) parsetree_and_error.tree, truncate_limit);
 
 	result.summary = summary;
 

@@ -66,7 +66,7 @@ typedef struct {
 
 static bool summary_truncation_options(Node *tree, TruncationState *state);
 //static void sort_truncations(Node *node, TruncationState *state);
-static PgQueryError *apply_truncations(Summary *summary, Node *tree, TruncationState *state);
+static PgQueryError *apply_truncations(Summary *summary, Node *tree, TruncationState *state, int truncate_limit);
 static int cmp_possible_truncation_depth(const ListCell *a, const ListCell *b);
 
 static int32_t select_target_list_len(List *nodes);
@@ -86,13 +86,13 @@ static Node *dummy_update(List *targetList);
  *
  * Returns NULL on success.
  */
-PgQueryError *pg_query_summary_truncate(Summary *summary, Node *tree)
+PgQueryError *pg_query_summary_truncate(Summary *summary, Node *tree, int truncate_limit)
 {
 	TruncationState state = {NULL, 0};
 
 	summary_truncation_options(tree, &state);
 	list_sort(state.truncations, cmp_possible_truncation_depth);
-	return apply_truncations(summary, tree, &state);
+	return apply_truncations(summary, tree, &state, truncate_limit);
 }
 
 static char *truncate_str(char *str, size_t max_chars)
@@ -309,7 +309,7 @@ static void remove_unneeded_as(char *str)
 	}
 }
 
-static PgQueryError *apply_truncations(Summary *summary, Node *tree, TruncationState *state)
+static PgQueryError *apply_truncations(Summary *summary, Node *tree, TruncationState *state, int truncation_limit)
 {
 	List *truncations = state->truncations;
 
@@ -371,22 +371,28 @@ static PgQueryError *apply_truncations(Summary *summary, Node *tree, TruncationS
 		}
 
 		foreach_delete_current(state->truncations, lc);
+
+		PgQueryDeparseResult result;
+
+		if (IsA(tree, List))
+			result = pg_query_deparse((List *) tree);
+		else
+			result = pg_query_deparse_node(tree);
+
+		char *output = result.query;
+		expand_ellipses(output);
+		remove_unneeded_as(output);
+
+		if (result.error)
+			return result.error;
+
+		if (strlen(output) <= truncation_limit) {
+			summary->truncated_query = output;
+			return NULL;
+		}
 	}
 
-	PgQueryDeparseResult result;
-
-	if (IsA(tree, List))
-		result = pg_query_deparse((List *) tree);
-	else
-		result = pg_query_deparse_node(tree);
-
-	if (result.error)
-		return result.error;
-
-	summary->truncated_query = result.query;
-	expand_ellipses(summary->truncated_query);
-	remove_unneeded_as(summary->truncated_query);
-
+	// It seems weird to return no error if we fail to find a valid truncation.
 	return NULL;
 }
 

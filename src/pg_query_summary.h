@@ -94,7 +94,7 @@ extern bool pg_query_raw_tree_walker_supports(Node *node);
 
 extern void pg_query_summary_statement_walk(Summary * summary, Node *node);
 
-extern PgQueryError *pg_query_summary_truncate(Summary *summary, Node *node);
+extern PgQueryError *pg_query_summary_truncate(Summary *summary, Node *node, int truncate_limit);
 
 /*
  * This is like pg_query_summary(), but returns a (non-protobuf)
