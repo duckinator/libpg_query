@@ -47,7 +47,9 @@ TEST_ASSERT_STR_EQUAL_impl(TestState * test_state, char *actual_str, char *actua
 		test_state->passed++;
 	else
 	{
-		printf("  FAIL: expected %s to be '%s', but got '%s'\n\n", actual_str, expected, actual);
+		printf("  FAIL: Expected `actual` (%s) and `expected` to be equivalent.\n", actual_str);
+		printf("      actual: %s\n", actual);
+		printf("    expected: %s\n\n", expected);
 		test_state->failed++;
 	}
 }
