@@ -12,6 +12,14 @@
 
 PgQueryDeparseResult pg_query_deparse_node(Node *node)
 {
+	if (!IsA(node, RawStmt)) {
+		RawStmt *raw = makeNode(RawStmt);
+		raw->stmt = node;
+		raw->stmt_location = -1;
+		raw->stmt_len = 0;
+		node = (Node *) raw;
+	}
+
 	return pg_query_deparse(list_make1(node));
 }
 
