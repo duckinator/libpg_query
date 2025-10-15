@@ -66,7 +66,7 @@ typedef struct {
 
 static bool summary_truncation_options(Node *tree, TruncationState *state);
 //static void sort_truncations(Node *node, TruncationState *state);
-static void apply_truncations(Node *tree, TruncationState *state);
+static PgQueryError *apply_truncations(Summary *summary, Node *tree, TruncationState *state);
 static int cmp_possible_truncation_depth(const ListCell *a, const ListCell *b);
 
 static int32_t select_target_list_len(List *nodes);
@@ -74,6 +74,12 @@ static int32_t select_values_lists_len(List *nodes);
 static int32_t update_target_list_len(List *nodes);
 static int32_t where_clause_len(Node *node);
 static int32_t cols_len(List *nodes);
+
+static ColumnRef *dummy_column(void);
+static ResTarget *dummy_target(void);
+static Node *dummy_select(List *targetList, Node *whereClause, List *valuesLists);
+static Node *dummy_insert(List *cols);
+static Node *dummy_update(List *targetList);
 
 /*
  * Given a walked parse tree and summary, store the truncated version in `summary`.
@@ -86,8 +92,7 @@ PgQueryError *pg_query_summary_truncate(Summary *summary, Node *tree)
 
 	summary_truncation_options(tree, &state);
 	list_sort(state.truncations, cmp_possible_truncation_depth);
-	apply_truncations(tree, &state);
-	return NULL;
+	return apply_truncations(summary, tree, &state);
 }
 
 static char *truncate_str(char *str, size_t max_chars)
@@ -273,7 +278,7 @@ static int cmp_possible_truncation_depth(const ListCell *a, const ListCell *b)
 	return pt_a->depth - pt_b->depth;
 }
 
-static void apply_truncations(Node *tree, TruncationState *state)
+static PgQueryError *apply_truncations(Summary *summary, Node *tree, TruncationState *state)
 {
 	List *truncations = state->truncations;
 
@@ -285,9 +290,13 @@ static void apply_truncations(Node *tree, TruncationState *state)
 		enum TruncationAttr attr = truncation->attr;
 
 		if (IsA(node, SelectStmt) && attr == TRUNCATION_TARGET_LIST) {
+			SelectStmt *stmt = castNode(SelectStmt, node);
+			stmt->targetList = list_make1(dummy_target());
 			printf("Select/targetList\n");
 		}
 		else if (IsA(node, SelectStmt) && attr == TRUNCATION_WHERE_CLAUSE) {
+			SelectStmt *stmt = castNode(SelectStmt, node);
+			stmt->whereClause = (Node *) dummy_column();
 			printf("Select/whereClause\n");
 		}
 		else if (IsA(node, SelectStmt) && attr == TRUNCATION_VALUES_LISTS) {
@@ -334,6 +343,18 @@ static void apply_truncations(Node *tree, TruncationState *state)
 
 		foreach_delete_current(state->truncations, lc);
 	}
+
+	PgQueryDeparseResult result;
+
+	if (IsA(tree, List))
+		result = pg_query_deparse((List *) tree);
+	else
+		result = pg_query_deparse_node(tree);
+
+	if (result.error)
+		return result.error;
+	else
+		summary->truncated_query = result.query;
 }
 
 static ColumnRef *dummy_column(void)
