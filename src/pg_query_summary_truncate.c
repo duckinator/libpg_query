@@ -278,6 +278,37 @@ static int cmp_possible_truncation_depth(const ListCell *a, const ListCell *b)
 	return pt_a->depth - pt_b->depth;
 }
 
+static void expand_ellipses(char *str)
+{
+	// https://www.compart.com/en/unicode/U+2026
+	// pattern is a double quote, ellipses, and another double quote.
+	char pattern[5] = {'"', 0xE2, 0x80, 0xA6, '"'};
+
+	for (size_t i = 0; i < strlen(str); i++) {
+		if (memcmp(str + i, pattern, 5) == 0) {
+			memcpy(str + i, "...", 3);
+			strcpy(str + i + 3, str + i + 5);
+		}
+	}
+}
+
+// This is equivalent to a kludge in the Rust implementation.
+// Not sure why the `SELECT ... AS ...` shows up in both Rust and C,
+// but not the Ruby implementation.
+static void remove_unneeded_as(char *str)
+{
+	char *pattern = "SELECT ... AS ...";
+	size_t plen = strlen(pattern);
+
+	size_t slen = strlen("SELECT ...");
+
+	for (size_t i = 0; i < strlen(str); i++) {
+		if (memcmp(str + i, pattern, plen) == 0) {
+			strcpy(str + i + slen, str + i + plen);
+		}
+	}
+}
+
 static PgQueryError *apply_truncations(Summary *summary, Node *tree, TruncationState *state)
 {
 	List *truncations = state->truncations;
@@ -351,8 +382,10 @@ static PgQueryError *apply_truncations(Summary *summary, Node *tree, TruncationS
 
 	if (result.error)
 		return result.error;
-	else
-		summary->truncated_query = result.query;
+
+	summary->truncated_query = result.query;
+	expand_ellipses(summary->truncated_query);
+	remove_unneeded_as(summary->truncated_query);
 
 	return NULL;
 }
