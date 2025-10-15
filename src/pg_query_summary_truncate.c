@@ -321,10 +321,10 @@ static PgQueryError *apply_truncations(Summary *summary, Node *tree, TruncationS
 	else
 		result = pg_query_deparse_node(tree);
 
-	char *original_output = result.query;
+	char *output = result.query;
 
 	if (strlen(result.query) <= truncation_limit) {
-		summary->truncated_query = original_output;
+		summary->truncated_query = output;
 		return NULL;
 	}
 
@@ -421,7 +421,7 @@ static PgQueryError *apply_truncations(Summary *summary, Node *tree, TruncationS
 		else
 			result = pg_query_deparse_node(tree);
 
-		char *output = result.query;
+		output = result.query;
 		expand_ellipses(output);
 		remove_unneeded_as(output);
 
@@ -435,8 +435,8 @@ static PgQueryError *apply_truncations(Summary *summary, Node *tree, TruncationS
 	}
 
 	printf("Falling back to crude truncation.\n");
-	truncate_str(original_output, truncation_limit);
-	summary->truncated_query = original_output;
+	truncate_str(output, truncation_limit);
+	summary->truncated_query = output;
 	return NULL;
 }
 
