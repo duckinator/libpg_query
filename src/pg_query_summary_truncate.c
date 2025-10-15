@@ -292,12 +292,10 @@ static PgQueryError *apply_truncations(Summary *summary, Node *tree, TruncationS
 		if (IsA(node, SelectStmt) && attr == TRUNCATION_TARGET_LIST) {
 			SelectStmt *stmt = castNode(SelectStmt, node);
 			stmt->targetList = list_make1(dummy_target());
-			printf("Select/targetList\n");
 		}
 		else if (IsA(node, SelectStmt) && attr == TRUNCATION_WHERE_CLAUSE) {
 			SelectStmt *stmt = castNode(SelectStmt, node);
 			stmt->whereClause = (Node *) dummy_column();
-			printf("Select/whereClause\n");
 		}
 		else if (IsA(node, SelectStmt) && attr == TRUNCATION_VALUES_LISTS) {
 			printf("Select/valuesLists\n");
