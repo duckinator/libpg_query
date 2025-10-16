@@ -534,7 +534,7 @@ static int32_t select_values_lists_len(List *nodes) {
 		return -1;
 	}
 
-	int32_t length = (int32_t)strlen(result.query) - 7; // "SELECT "
+	int32_t length = (int32_t)strlen(result.query) - 9; // "VALUES ()"
 
 	pg_query_free_deparse_result(result);
 
