@@ -58,7 +58,7 @@ void it_omits_INSERT_field_list(TestState* test_state) {
     TEST_INIT();
     char* query = "INSERT INTO \"x\" (a, b, c, d, e, f) VALUES ($1)";
     Summary result = summary(query, 0, 32);
-    TEST_ASSERT_STR_EQUAL(result.truncated_query, "INSERT INTO x (...) VALUES (...)");
+    TEST_ASSERT_STR_EQUAL(result.truncated_query, "INSERT INTO x (...) VALUES ($1)");
 }
 
 void it_omits_comments(TestState* test_state) {

@@ -335,7 +335,9 @@ static PgQueryError *apply_truncations(Summary *summary, Node *tree, TruncationS
 		Node *node = truncation->node;
 		enum TruncationAttr attr = truncation->attr;
 
-		if (IsA(node, SelectStmt) && attr == TRUNCATION_TARGET_LIST) {
+		if (truncation->length <= 3) {
+			// If "truncating" would make it longer, refuse to truncate.
+		} else if (IsA(node, SelectStmt) && attr == TRUNCATION_TARGET_LIST) {
 			SelectStmt *stmt = castNode(SelectStmt, node);
 			stmt->targetList = list_make1(dummy_target());
 			printf("Select/targetList\n");
@@ -434,7 +436,6 @@ static PgQueryError *apply_truncations(Summary *summary, Node *tree, TruncationS
 		}
 	}
 
-	printf("Falling back to crude truncation.\n");
 	truncate_str(output, truncation_limit);
 	summary->truncated_query = output;
 	return NULL;
