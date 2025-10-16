@@ -467,12 +467,7 @@ static Node *dummy_select(List *targetList, Node *whereClause, List *valuesLists
 
 	stmt->targetList = targetList;
 	stmt->whereClause = whereClause;
-	stmt->groupDistinct = false; // ???
 	stmt->valuesLists = valuesLists;
-
-	stmt->limitOption = 1; // ???
-	stmt->op = 1; // ???
-	stmt->all = false;
 
 	return (Node *) stmt;
 }
