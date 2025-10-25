@@ -5,10 +5,12 @@
 #include "nodes/pg_list.h"
 #include "nodes/nodeFuncs.h"
 
+#include "mb/pg_wchar.h"
+
 /* FIXME:
  * Temporarily copied from https://github.com/postgres/postgres/blob/REL_17_STABLE/src/backend/nodes/list.c#L1674
  * list_sort() needs to be imported properly.
- * check_list_invariants() is only copied because it's static.
+ * check_list_invariants() is already imported, but duplicated for now because it's static.
  */
 
 static void
@@ -39,6 +41,65 @@ list_sort(List *list, list_sort_comparator cmp)
 	len = list_length(list);
 	if (len > 1)
 		qsort(list->elements, len, sizeof(ListCell), (qsort_comparator) cmp);
+}
+
+/* FIXME: Temporarily copied from https://github.com/postgres/postgres/blob/REL_17_STABLE/src/backend/utils/mb/mbutils.c#L1120-L1158
+ * pg_mbcharcliplen() needs to be imported properly.
+ * it depends on cliplen().
+ */
+
+static int
+cliplen(const char *str, int len, int limit)
+{
+	int			l = 0;
+
+	len = Min(len, limit);
+	while (l < len && str[l])
+		l++;
+	return l;
+}
+
+int
+pg_mbcharcliplen(const char *mbstr, int len, int limit)
+{
+	int			clen = 0;
+	int			nch = 0;
+	int			l;
+
+	/* optimization for single byte encoding */
+	if (pg_database_encoding_max_length() == 1)
+		return cliplen(mbstr, len, limit);
+
+	while (len > 0 && *mbstr)
+	{
+		l = pg_mblen(mbstr);
+		nch++;
+		if (nch > limit)
+			break;
+		clen += l;
+		len -= l;
+		mbstr += l;
+	}
+	return clen;
+}
+
+/* FIXME: temporarily copied from https://github.com/postgres/postgres/blob/REL_17_STABLE/src/backend/utils/mb/mbutils.c#L1036-L1051 */
+
+int
+pg_mbstrlen(const char *mbstr)
+{
+	int			len = 0;
+
+	/* optimization for single byte encoding */
+	if (pg_database_encoding_max_length() == 1)
+		return strlen(mbstr);
+
+	while (*mbstr)
+	{
+		mbstr += pg_mblen(mbstr);
+		len++;
+	}
+	return len;
 }
 
 /* ========================= */
@@ -95,16 +156,21 @@ PgQueryError *pg_query_summary_truncate(Summary *summary, Node *tree, int trunca
 	return apply_truncations(summary, tree, &state, truncate_limit);
 }
 
-static char *truncate_str(char *str, size_t max_chars)
+static void truncate_mbstr(char *mbstr, size_t max_chars)
 {
-	// FIXME: This WILL blow up for multi-byte UTF-8 characters, since it's going
-	// by byte instead of character. I think C has functions to deal with this,
-	// I just haven't learned about them yet. -duckinator
-	if (strlen(str) > max_chars) {
-		strncpy(str + max_chars - 3, "...", 4);
-		str[max_chars] = 0; // set null terminator
-	}
-	return str;
+	// Determine the number of characters in mbstr.
+	int n_chars = pg_mbstrlen(mbstr);
+
+	// If we don't need to truncate the string, return immediately.
+	if (n_chars <= max_chars)
+		return;
+
+	// Determine how many bytes hold `max_chars - 3`.
+	int n_bytes = pg_mbcharcliplen(mbstr, n_chars, max_chars - 3);
+
+	// Actually truncate it.
+	strncpy(mbstr + n_bytes, "...", 4);
+	mbstr[n_bytes + 3] = '\0';
 }
 
 static void add_truncation(TruncationState *state, enum TruncationAttr attr,
@@ -436,7 +502,7 @@ static PgQueryError *apply_truncations(Summary *summary, Node *tree, TruncationS
 		}
 	}
 
-	truncate_str(output, truncation_limit);
+	truncate_mbstr(output, truncation_limit);
 	summary->truncated_query = output;
 	return NULL;
 }
