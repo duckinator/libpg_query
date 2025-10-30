@@ -366,8 +366,9 @@ static void expand_ellipses(char *str)
 
 	for (size_t i = 0; i < strlen(str); i++) {
 		if (memcmp(str + i, pattern, 5) == 0) {
+			size_t len = strlen(str);
 			memcpy(str + i, "...", 3);
-			strcpy(str + i + 3, str + i + 5);
+			memmove(str + i + 3, str + i + 5, len - i - 2);
 		}
 	}
 }
