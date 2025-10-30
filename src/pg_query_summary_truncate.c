@@ -380,13 +380,7 @@ static PgQueryError *apply_truncations(Summary *summary, Node *tree, TruncationS
 {
 	List *truncations = state->truncations;
 
-	PgQueryDeparseResult result;
-
-	if (IsA(tree, List))
-		result = pg_query_deparse((List *) tree);
-	else
-		result = pg_query_deparse_node(tree);
-
+	PgQueryDeparseResult result = pg_query_deparse(tree);
 	char *output = result.query;
 
 	if (strlen(result.query) <= truncation_limit) {
@@ -482,12 +476,7 @@ static PgQueryError *apply_truncations(Summary *summary, Node *tree, TruncationS
 
 		foreach_delete_current(state->truncations, lc);
 
-		PgQueryDeparseResult result;
-
-		if (IsA(tree, List))
-			result = pg_query_deparse((List *) tree);
-		else
-			result = pg_query_deparse_node(tree);
+		PgQueryDeparseResult result = pg_query_deparse(tree);
 
 		output = result.query;
 		expand_ellipses(output);
