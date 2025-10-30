@@ -404,9 +404,11 @@ static PgQueryError *apply_truncations(Summary *summary, Node *tree, TruncationS
 		return NULL;
 	}
 
-	ListCell *lc;
-	foreach(lc, state->truncations) {
-		PossibleTruncation *truncation = lfirst(lc);
+	while (list_length(state->truncations) > 0) {
+		// Get the first item from the list.
+		PossibleTruncation *truncation = linitial(state->truncations);
+		// ... and then remove it from the list.
+		state->truncations = list_delete_nth_cell(state->truncations, 0);
 
 		Node *node = truncation->node;
 		enum TruncationAttr attr = truncation->attr;
@@ -464,9 +466,19 @@ static PgQueryError *apply_truncations(Summary *summary, Node *tree, TruncationS
 			printf("Rule/whereClause\n");
 		}
 		else if (IsA(node, CommonTableExpr) && attr == TRUNCATION_CTE_QUERY) {
+			// Equivalent to: https://github.com/pganalyze/pg_query.rs/blob/66eb7becea1a40e315fee3f90197a35a89d20c25/src/truncate.rs#L230-L237
 			CommonTableExpr *stmt = castNode(CommonTableExpr, node);
+			Node *old = stmt->ctequery;
 			stmt->ctequery = dummy_select(NULL, (Node *) dummy_column(), NULL);
-			// FIXME: https://github.com/pganalyze/pg_query.rs/blob/66eb7becea1a40e315fee3f90197a35a89d20c25/src/truncate.rs#L230-L237
+			if (old) {
+				for (size_t i = 0; i < list_length(state->truncations);) {
+					PossibleTruncation *t = (PossibleTruncation *) list_nth_cell(state->truncations, i);
+					if (t->node == old)
+						state->truncations = list_delete_nth_cell(state->truncations, i);
+					else
+						i++;
+				}
+			}
 			printf("CTE/cteQuery\n");
 		}
 		else if (IsA(node, InferClause) && attr == TRUNCATION_WHERE_CLAUSE) {
@@ -489,8 +501,6 @@ static PgQueryError *apply_truncations(Summary *summary, Node *tree, TruncationS
 			fprintf(stderr, "ERROR: unimplemented truncation");
 			exit(1);
 		}
-
-		foreach_delete_current(state->truncations, lc);
 
 		PgQueryDeparseResult result = pg_query_deparse(tree);
 
