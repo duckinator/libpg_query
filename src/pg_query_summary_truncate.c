@@ -114,6 +114,7 @@ enum TruncationAttr {
 };
 
 typedef struct {
+	PgQueryError *error;
 	List *truncations;
 	int32_t depth;
 } TruncationState;
@@ -149,9 +150,13 @@ static Node *dummy_update(List *targetList);
  */
 PgQueryError *pg_query_summary_truncate(Summary *summary, Node *tree, int truncate_limit)
 {
-	TruncationState state = {NULL, 0};
+	TruncationState state = {NULL, NULL, 0};
 
 	summary_truncation_options(tree, &state);
+
+	if (state.error)
+		return state.error;
+
 	list_sort(state.truncations, cmp_possible_truncation_depth);
 	return apply_truncations(summary, tree, &state, truncate_limit);
 }
@@ -383,6 +388,9 @@ static PgQueryError *apply_truncations(Summary *summary, Node *tree, TruncationS
 	PgQueryDeparseResult result = pg_query_deparse(tree);
 	char *output = result.query;
 
+	if (result.error)
+		return result.error;
+
 	if (strlen(result.query) <= truncation_limit) {
 		summary->truncated_query = output;
 		return NULL;
@@ -478,12 +486,12 @@ static PgQueryError *apply_truncations(Summary *summary, Node *tree, TruncationS
 
 		PgQueryDeparseResult result = pg_query_deparse(tree);
 
+		if (result.error)
+			return result.error;
+
 		output = result.query;
 		expand_ellipses(output);
 		remove_unneeded_as(output);
-
-		if (result.error)
-			return result.error;
 
 		if (strlen(output) <= truncation_limit) {
 			summary->truncated_query = output;
