@@ -298,7 +298,15 @@ summary_truncation_options(Node *node, TruncationState *state)
 				CommonTableExpr *stmt = castNode(CommonTableExpr, node);
 
 				if (stmt->ctequery != NULL) {
-					int32_t length = 2; // FIXME
+					PgQueryDeparseResult result = pg_query_deparse(node);
+
+					if (result.error) {
+						state->error = result.error;
+						return false;
+					}
+
+					int32_t length = strlen(result.query);
+
 					add_truncation(state,
 							TRUNCATION_CTE_QUERY,
 							node,
