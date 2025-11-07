@@ -211,8 +211,6 @@ summary_truncation_options(Node *node, TruncationState *state)
 	switch (nodeTag(node))
 	{
 		case T_RawStmt:
-			// For some reason our statement has been trapped in a RawStmt.
-			// Free them.
 			return summary_truncation_options(castNode(RawStmt, node)->stmt, state);
 
 		case T_SelectStmt:
