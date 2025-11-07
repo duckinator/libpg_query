@@ -11872,9 +11872,6 @@ static void deparseStmt(DeparseState *state, Node *node)
 		case T_CommentStmt:
 			deparseCommentStmt(state, castNode(CommentStmt, node));
 			break;
-		case T_CommonTableExpr:
-			deparseCommonTableExpr(state, castNode(CommonTableExpr, node));
-			break;
 		case T_ConstraintsSetStmt:
 			deparseConstraintsSetStmt(state, castNode(ConstraintsSetStmt, node));
 			break;
