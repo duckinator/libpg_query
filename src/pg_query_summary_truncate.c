@@ -152,6 +152,17 @@ PgQueryError *pg_query_summary_truncate(Summary *summary, Node *tree, int trunca
 {
 	TruncationState state = {NULL, NULL, 0};
 
+	PgQueryDeparseResult result = pg_query_deparse_stmt_list((List *) tree);
+	char *output = result.query;
+
+	if (result.error)
+		return result.error;
+
+	if (strlen(result.query) <= truncate_limit) {
+		summary->truncated_query = output;
+		return NULL;
+	}
+
 	generate_possible_truncations(tree, &state);
 
 	if (state.error)
@@ -391,15 +402,11 @@ static PgQueryError *apply_truncations(Summary *summary, Node *tree, TruncationS
 	List *truncations = state->truncations;
 
 	PgQueryDeparseResult result = pg_query_deparse_stmt_list((List *) tree);
+	// Default value for `output`, if state->truncations has nothing usable.
 	char *output = result.query;
 
 	if (result.error)
 		return result.error;
-
-	if (strlen(result.query) <= truncation_limit) {
-		summary->truncated_query = output;
-		return NULL;
-	}
 
 	while (list_length(state->truncations) > 0) {
 		// Get the first item from the list.
