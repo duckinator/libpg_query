@@ -296,19 +296,17 @@ generate_possible_truncations(Node *node, TruncationState *state)
 				CommonTableExpr *stmt = castNode(CommonTableExpr, node);
 
 				if (stmt->ctequery != NULL) {
-					PgQueryDeparseResult result = pg_query_deparse_node(node);
+					PgQueryDeparseResult result = pg_query_deparse_node((Node *) stmt->ctequery);
 
 					if (result.error) {
 						state->error = result.error;
 						return false;
 					}
 
-					int32_t length = strlen(result.query);
-
 					add_truncation(state,
 							TRUNCATION_CTE_QUERY,
 							node,
-							length);
+							strlen(result.query));
 				}
 
 				break;
