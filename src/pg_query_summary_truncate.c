@@ -126,7 +126,7 @@ typedef struct {
 	int32_t length;
 } PossibleTruncation;
 
-static bool summary_truncation_options(Node *tree, TruncationState *state);
+static bool generate_possible_truncations(Node *tree, TruncationState *state);
 //static void sort_truncations(Node *node, TruncationState *state);
 static PgQueryError *apply_truncations(Summary *summary, Node *tree, TruncationState *state, int truncate_limit);
 static int cmp_possible_truncation_depth(const ListCell *a, const ListCell *b);
@@ -152,7 +152,7 @@ PgQueryError *pg_query_summary_truncate(Summary *summary, Node *tree, int trunca
 {
 	TruncationState state = {NULL, NULL, 0};
 
-	summary_truncation_options(tree, &state);
+	generate_possible_truncations(tree, &state);
 
 	if (state.error)
 		return state.error;
@@ -203,7 +203,7 @@ static void add_truncation_where_clause(TruncationState *state, Node *node, Node
 }
 
 static bool
-summary_truncation_options(Node *node, TruncationState *state)
+generate_possible_truncations(Node *node, TruncationState *state)
 {
 	if (node == NULL)
 		return false;
@@ -211,7 +211,7 @@ summary_truncation_options(Node *node, TruncationState *state)
 	switch (nodeTag(node))
 	{
 		case T_RawStmt:
-			return summary_truncation_options(castNode(RawStmt, node)->stmt, state);
+			return generate_possible_truncations(castNode(RawStmt, node)->stmt, state);
 
 		case T_SelectStmt:
 			{
@@ -345,7 +345,7 @@ summary_truncation_options(Node *node, TruncationState *state)
 
 	state->depth++;
 
-	return raw_expression_tree_walker(node, summary_truncation_options, (void *) state);
+	return raw_expression_tree_walker(node, generate_possible_truncations, (void *) state);
 }
 
 static int cmp_possible_truncation_depth(const ListCell *a, const ListCell *b)
