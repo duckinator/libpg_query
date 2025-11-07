@@ -10,7 +10,7 @@
 
 #include "protobuf/pg_query.pb-c.h"
 
-PgQueryDeparseResult pg_query_deparse_node(Node *node)
+PgQueryDeparseResult pg_query_deparse_stmt(Node *node)
 {
 	if (IsA(node, List)) {
 		elog(ERROR, "expected node argument to not be a List.");

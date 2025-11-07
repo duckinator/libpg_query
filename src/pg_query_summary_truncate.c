@@ -296,7 +296,7 @@ generate_possible_truncations(Node *node, TruncationState *state)
 				CommonTableExpr *stmt = castNode(CommonTableExpr, node);
 
 				if (stmt->ctequery != NULL) {
-					PgQueryDeparseResult result = pg_query_deparse_node((Node *) stmt->ctequery);
+					PgQueryDeparseResult result = pg_query_deparse_stmt((Node *) stmt->ctequery);
 
 					if (result.error) {
 						state->error = result.error;
@@ -589,7 +589,7 @@ static void print_pg_query_error(PgQueryError *error, const char *func)
 }
 
 static int32_t select_target_list_len(List *nodes) {
-	PgQueryDeparseResult result = pg_query_deparse_node(dummy_select(nodes, NULL, NULL));
+	PgQueryDeparseResult result = pg_query_deparse_stmt(dummy_select(nodes, NULL, NULL));
 
 	if (result.error) {
 		print_pg_query_error(result.error, __func__);
@@ -605,7 +605,7 @@ static int32_t select_target_list_len(List *nodes) {
 }
 
 static int32_t select_values_lists_len(List *nodes) {
-	PgQueryDeparseResult result = pg_query_deparse_node(dummy_select(NULL, NULL, nodes));
+	PgQueryDeparseResult result = pg_query_deparse_stmt(dummy_select(NULL, NULL, nodes));
 
 	if (result.error) {
 		print_pg_query_error(result.error, __func__);
@@ -621,7 +621,7 @@ static int32_t select_values_lists_len(List *nodes) {
 }
 
 static int32_t update_target_list_len(List *nodes) {
-	PgQueryDeparseResult result = pg_query_deparse_node(dummy_update(nodes));
+	PgQueryDeparseResult result = pg_query_deparse_stmt(dummy_update(nodes));
 
 	if (result.error) {
 		print_pg_query_error(result.error, __func__);
@@ -637,7 +637,7 @@ static int32_t update_target_list_len(List *nodes) {
 }
 
 static int32_t where_clause_len(Node *node) {
-	PgQueryDeparseResult result = pg_query_deparse_node(dummy_select(NULL, node, NULL));
+	PgQueryDeparseResult result = pg_query_deparse_stmt(dummy_select(NULL, node, NULL));
 
 	if (result.error) {
 		print_pg_query_error(result.error, __func__);
@@ -653,7 +653,7 @@ static int32_t where_clause_len(Node *node) {
 }
 
 static int32_t cols_len(List *nodes) {
-	PgQueryDeparseResult result = pg_query_deparse_node(dummy_insert(nodes));
+	PgQueryDeparseResult result = pg_query_deparse_stmt(dummy_insert(nodes));
 
 	if (result.error) {
 		print_pg_query_error(result.error, __func__);
