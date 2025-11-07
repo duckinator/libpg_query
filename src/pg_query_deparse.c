@@ -10,16 +10,12 @@
 
 #include "protobuf/pg_query.pb-c.h"
 
-PgQueryDeparseResult pg_query_deparse(Node *node)
-{
-	if (IsA(node, List))
-		return pg_query_deparse_list((List*) node);
-	else
-		return pg_query_deparse_node(node);
-}
-
 PgQueryDeparseResult pg_query_deparse_node(Node *node)
 {
+	if (IsA(node, List)) {
+		elog(ERROR, "expected node argument to not be a List.");
+	}
+
 	if (!IsA(node, RawStmt)) {
 		RawStmt *raw = makeNode(RawStmt);
 		raw->stmt = node;
@@ -28,11 +24,15 @@ PgQueryDeparseResult pg_query_deparse_node(Node *node)
 		node = (Node *) raw;
 	}
 
-	return pg_query_deparse_list(list_make1(node));
+	return pg_query_deparse_stmt_list(list_make1(node));
 }
 
-PgQueryDeparseResult pg_query_deparse_list(List *stmts)
+PgQueryDeparseResult pg_query_deparse_stmt_list(List *stmts)
 {
+	if (!IsA(stmts, List)) {
+		elog(ERROR, "expected stmts argument to be a List*.");
+	}
+
 	PostgresDeparseOpts opts;
 	MemSet(&opts, 0, sizeof(PostgresDeparseOpts));
 	return pg_query_deparse_opts(stmts, opts);

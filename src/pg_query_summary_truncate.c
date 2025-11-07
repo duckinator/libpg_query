@@ -298,7 +298,7 @@ summary_truncation_options(Node *node, TruncationState *state)
 				CommonTableExpr *stmt = castNode(CommonTableExpr, node);
 
 				if (stmt->ctequery != NULL) {
-					PgQueryDeparseResult result = pg_query_deparse(node);
+					PgQueryDeparseResult result = pg_query_deparse_node(node);
 
 					if (result.error) {
 						state->error = result.error;
@@ -394,7 +394,7 @@ static PgQueryError *apply_truncations(Summary *summary, Node *tree, TruncationS
 {
 	List *truncations = state->truncations;
 
-	PgQueryDeparseResult result = pg_query_deparse(tree);
+	PgQueryDeparseResult result = pg_query_deparse_stmt_list((List *) tree);
 	char *output = result.query;
 
 	if (result.error)
@@ -503,7 +503,7 @@ static PgQueryError *apply_truncations(Summary *summary, Node *tree, TruncationS
 			exit(1);
 		}
 
-		PgQueryDeparseResult result = pg_query_deparse(tree);
+		PgQueryDeparseResult result = pg_query_deparse_stmt_list((List *) tree);
 
 		if (result.error)
 			return result.error;
