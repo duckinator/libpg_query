@@ -2730,9 +2730,6 @@ static void deparseUtilityOptionList(DeparseState *state, List *options)
 
 static void deparseSelectStmt(DeparseState *state, SelectStmt *stmt, DeparseNodeContext context)
 {
-	if (stmt == NULL)
-		return;
-
 	const ListCell *lc = NULL;
 	const ListCell *lc2 = NULL;
 	bool need_parens = context == DEPARSE_NODE_CONTEXT_SELECT_SETOP && (
