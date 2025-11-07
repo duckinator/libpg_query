@@ -352,9 +352,16 @@ generate_possible_truncations(Node *node, TruncationState *state)
 	if (!pg_query_raw_tree_walker_supports(node))
 		return false;
 
+	int old_depth = state->depth;
 	state->depth++;
 
-	return raw_expression_tree_walker(node, generate_possible_truncations, (void *) state);
+	bool result = raw_expression_tree_walker(node, generate_possible_truncations, (void *) state);
+
+	// Restore old depth value, since the current node (or its parents) may
+	// have sibling elements.
+	state->depth = old_depth;
+
+	return result;
 }
 
 static int cmp_possible_truncation_depth(const ListCell *a, const ListCell *b)
