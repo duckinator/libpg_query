@@ -129,7 +129,7 @@ typedef struct {
 static bool generate_possible_truncations(Node *tree, TruncationState *state);
 //static void sort_truncations(Node *node, TruncationState *state);
 static PgQueryError *apply_truncations(Summary *summary, Node *tree, TruncationState *state, int truncate_limit);
-static int cmp_possible_truncation_depth(const ListCell *a, const ListCell *b);
+static int cmp_possible_truncations(const ListCell *a, const ListCell *b);
 
 static int32_t select_target_list_len(List *nodes);
 static int32_t select_values_lists_len(List *nodes);
@@ -168,7 +168,7 @@ PgQueryError *pg_query_summary_truncate(Summary *summary, Node *tree, int trunca
 	if (state.error)
 		return state.error;
 
-	list_sort(state.truncations, cmp_possible_truncation_depth);
+	list_sort(state.truncations, cmp_possible_truncations);
 	return apply_truncations(summary, tree, &state, truncate_limit);
 }
 
@@ -364,12 +364,17 @@ generate_possible_truncations(Node *node, TruncationState *state)
 	return result;
 }
 
-static int cmp_possible_truncation_depth(const ListCell *a, const ListCell *b)
+static int cmp_possible_truncations(const ListCell *a, const ListCell *b)
 {
 	const PossibleTruncation *pt_a = lfirst(a);
 	const PossibleTruncation *pt_b = lfirst(b);
 
-	return pt_a->depth - pt_b->depth;
+	int depth_cmp = pt_b->depth - pt_a->depth;
+
+	if (depth_cmp != 0)
+		return depth_cmp;
+
+	return pt_b->length - pt_a->length;
 }
 
 static void expand_ellipses(char *str)
