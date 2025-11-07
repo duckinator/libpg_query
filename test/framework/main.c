@@ -181,7 +181,7 @@ TEST_ASSERT_LIST_EQUAL_impl(TestState * test_state, char *actual_str, List *actu
 // Given a list of tests, cleanup function, and use_mctx,
 // run tests and return the results.
 //
-// If `use_mctx` is true, a Postgres MemoryContex is enter before the test is run,
+// If `use_mctx` is true, a Postgres MemoryContext is entered before the test is run,
 // and exited after the cleanup function is called.
 //
 // This function exists so test_run() and test_run_with_mctx() can share an
