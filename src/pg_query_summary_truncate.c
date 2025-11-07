@@ -582,20 +582,11 @@ static Node *dummy_update(List *targetList)
 	return (Node *) stmt;
 }
 
-static void print_pg_query_error(PgQueryError *error, const char *func)
-{
-	fprintf(stderr, "ERROR from %s:\n  %s:%s:%i: %s\n",
-			func, error->funcname, error->filename, error->lineno, error->message);
-}
-
 static int32_t select_target_list_len(List *nodes) {
 	PgQueryDeparseResult result = pg_query_deparse_stmt(dummy_select(nodes, NULL, NULL));
 
-	if (result.error) {
-		print_pg_query_error(result.error, __func__);
-		pg_query_free_deparse_result(result);
-		return -1;
-	}
+	if (result.error)
+		elog(ERROR, "%s: %s", __func__, result.error->message);
 
 	int32_t length = (int32_t)strlen(result.query) - 7; // "SELECT "
 
@@ -607,11 +598,8 @@ static int32_t select_target_list_len(List *nodes) {
 static int32_t select_values_lists_len(List *nodes) {
 	PgQueryDeparseResult result = pg_query_deparse_stmt(dummy_select(NULL, NULL, nodes));
 
-	if (result.error) {
-		print_pg_query_error(result.error, __func__);
-		pg_query_free_deparse_result(result);
-		return -1;
-	}
+	if (result.error)
+		elog(ERROR, "%s: %s", __func__, result.error->message);
 
 	int32_t length = (int32_t)strlen(result.query) - 9; // "VALUES ()"
 
@@ -623,11 +611,8 @@ static int32_t select_values_lists_len(List *nodes) {
 static int32_t update_target_list_len(List *nodes) {
 	PgQueryDeparseResult result = pg_query_deparse_stmt(dummy_update(nodes));
 
-	if (result.error) {
-		print_pg_query_error(result.error, __func__);
-		pg_query_free_deparse_result(result);
-		return -1;
-	}
+	if (result.error)
+		elog(ERROR, "%s: %s", __func__, result.error->message);
 
 	int32_t length = (int32_t)strlen(result.query) - 13; // "UPDATE x SET "
 
@@ -639,11 +624,8 @@ static int32_t update_target_list_len(List *nodes) {
 static int32_t where_clause_len(Node *node) {
 	PgQueryDeparseResult result = pg_query_deparse_stmt(dummy_select(NULL, node, NULL));
 
-	if (result.error) {
-		print_pg_query_error(result.error, __func__);
-		pg_query_free_deparse_result(result);
-		return -1;
-	}
+	if (result.error)
+		elog(ERROR, "%s: %s", __func__, result.error->message);
 
 	int32_t length = (int32_t)strlen(result.query) - 13; // "SELECT WHERE "
 
@@ -655,11 +637,8 @@ static int32_t where_clause_len(Node *node) {
 static int32_t cols_len(List *nodes) {
 	PgQueryDeparseResult result = pg_query_deparse_stmt(dummy_insert(nodes));
 
-	if (result.error) {
-		print_pg_query_error(result.error, __func__);
-		pg_query_free_deparse_result(result);
-		return -1;
-	}
+	if (result.error)
+		elog(ERROR, "%s: %s", __func__, result.error->message);
 
 	int32_t length = (int32_t)strlen(result.query) - 31; // "INSERT INTO x () DEFAULT VALUES"
 
