@@ -153,15 +153,20 @@ PgQueryError *pg_query_summary_truncate(Summary *summary, Node *tree, int trunca
 	TruncationState state = {NULL, NULL, 0};
 
 	PgQueryDeparseResult result = pg_query_deparse_stmt_list((List *) tree);
-	char *output = result.query;
 
 	if (result.error)
 		return result.error;
 
-	if (strlen(result.query) <= truncate_limit) {
+	char *output = pstrdup(result.query);
+
+	pg_query_free_deparse_result(result);
+
+	if (strlen(output) <= truncate_limit) {
 		summary->truncated_query = output;
 		return NULL;
 	}
+
+	pfree(output);
 
 	generate_possible_truncations(tree, &state);
 
@@ -323,10 +328,13 @@ generate_possible_truncations(Node *node, TruncationState *state)
 						return false;
 					}
 
+					char *query = pstrdup(result.query);
+					pg_query_free_deparse_result(result);
+
 					add_truncation(state,
 							TRUNCATION_CTE_QUERY,
 							node,
-							strlen(result.query));
+							strlen(query));
 				}
 
 				break;
@@ -425,10 +433,12 @@ static PgQueryError *apply_truncations(Summary *summary, Node *tree, TruncationS
 
 	PgQueryDeparseResult result = pg_query_deparse_stmt_list((List *) tree);
 	// Default value for `output`, if state->truncations has nothing usable.
-	char *output = result.query;
+	char *output = pstrdup(result.query);
 
 	if (result.error)
 		return result.error;
+
+	pg_query_free_deparse_result(result);
 
 	ListCell *lc;
 	foreach(lc, state->truncations) {
@@ -526,7 +536,11 @@ static PgQueryError *apply_truncations(Summary *summary, Node *tree, TruncationS
 		if (result.error)
 			return result.error;
 
-		output = result.query;
+		pfree(output);
+		output = pstrdup(result.query);
+
+		pg_query_free_deparse_result(result);
+
 		expand_ellipses(output);
 		remove_unneeded_as(output);
 
