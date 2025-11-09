@@ -245,6 +245,13 @@ generate_possible_truncations(Node *node, TruncationState *state)
 				break;
 			}
 
+		case T_IndexStmt:
+			{
+				IndexStmt *stmt = castNode(IndexStmt, node);
+				add_truncation_where_clause(state, node, stmt->whereClause);
+				break;
+			}
+
 		case T_UpdateStmt:
 			{
 				UpdateStmt *stmt = castNode(UpdateStmt, node);
@@ -256,6 +263,15 @@ generate_possible_truncations(Node *node, TruncationState *state)
 							update_target_list_len(stmt->targetList));
 
 				add_truncation_where_clause(state, node, stmt->whereClause);
+
+				break;
+			}
+
+		case T_MergeStmt:
+			{
+				MergeStmt *stmt = castNode(MergeStmt, node);
+
+				printf("FIXME --- ADD MergeStmt SUPPORT\n");
 
 				break;
 			}
@@ -285,13 +301,6 @@ generate_possible_truncations(Node *node, TruncationState *state)
 				if (stmt->cols != NULL)
 					add_truncation(state, TRUNCATION_COLS, node, cols_len(stmt->cols));
 
-				break;
-			}
-
-		case T_IndexStmt:
-			{
-				IndexStmt *stmt = castNode(IndexStmt, node);
-				add_truncation_where_clause(state, node, stmt->whereClause);
 				break;
 			}
 
@@ -449,10 +458,21 @@ static PgQueryError *apply_truncations(Summary *summary, Node *tree, TruncationS
 			stmt->targetList = list_make1(dummy_target());
 			printf("UpdateStmt/targetList\n");
 		}
+		else if (IsA(node, InsertStmt) && attr == TRUNCATION_COLS) {
+			InsertStmt *stmt = castNode(InsertStmt, node);
+			stmt->cols = list_make1(dummy_target());
+			printf("Insert/cols\n");
+		}
 		else if (IsA(node, UpdateStmt) && attr == TRUNCATION_WHERE_CLAUSE) {
 			UpdateStmt *stmt = castNode(UpdateStmt, node);
 			stmt->whereClause = (Node *) dummy_column();
 			printf("UpdateStmt/whereClause\n");
+		}
+		else if (IsA(node, MergeStmt) /*&& attr == ???*/) {
+			MergeStmt *stmt = castNode(MergeStmt, node);
+			printf("FIXME -- ADD MergeStmt SUPPORT\n");
+			// stmt->??? = (Node *) ???;
+			printf("MergeStmt/???\n");
 		}
 		else if (IsA(node, DeleteStmt) && attr == TRUNCATION_WHERE_CLAUSE) {
 			DeleteStmt *stmt = castNode(DeleteStmt, node);
@@ -463,11 +483,6 @@ static PgQueryError *apply_truncations(Summary *summary, Node *tree, TruncationS
 			CopyStmt *stmt = castNode(CopyStmt, node);
 			stmt->whereClause = (Node *) dummy_column();
 			printf("Copy/whereClause\n");
-		}
-		else if (IsA(node, InsertStmt) && attr == TRUNCATION_COLS) {
-			InsertStmt *stmt = castNode(InsertStmt, node);
-			stmt->cols = list_make1(dummy_target());
-			printf("Insert/cols\n");
 		}
 		else if (IsA(node, IndexStmt) && attr == TRUNCATION_WHERE_CLAUSE) {
 			IndexStmt *stmt = castNode(IndexStmt, node);
