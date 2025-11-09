@@ -394,9 +394,9 @@ static void expand_ellipses(char *str)
 
 	for (size_t i = 0; i < strlen(str); i++) {
 		if (memcmp(str + i, pattern, 5) == 0) {
-			size_t len = strlen(str);
+			size_t len = strlen(str + i + 5);
 			memcpy(str + i, "...", 3);
-			memmove(str + i + 3, str + i + 5, len - i - 2);
+			memmove(str + i + 3, str + i + 5, len + 1);
 		}
 	}
 }
@@ -413,7 +413,8 @@ static void remove_unneeded_as(char *str)
 
 	for (size_t i = 0; i < strlen(str); i++) {
 		if (memcmp(str + i, pattern, plen) == 0) {
-			strcpy(str + i + slen, str + i + plen);
+			size_t len = strlen(str + i + plen);
+			memmove(str + i + slen, str + i + plen, len + 1);
 		}
 	}
 }
