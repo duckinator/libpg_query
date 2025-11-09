@@ -420,11 +420,9 @@ static PgQueryError *apply_truncations(Summary *summary, Node *tree, TruncationS
 	if (result.error)
 		return result.error;
 
-	while (list_length(state->truncations) > 0) {
-		// Get the first item from the list.
-		PossibleTruncation *truncation = linitial(state->truncations);
-		// ... and then remove it from the list.
-		state->truncations = list_delete_nth_cell(state->truncations, 0);
+	ListCell *lc;
+	foreach(lc, state->truncations) {
+		PossibleTruncation *truncation = lfirst(lc);
 
 		Node *node = truncation->node;
 		enum TruncationAttr attr = truncation->attr;
