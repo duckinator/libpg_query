@@ -398,78 +398,61 @@ static void apply_truncations(Summary *summary, Node *tree, TruncationState *sta
 		} else if (IsA(node, SelectStmt) && attr == TRUNCATION_TARGET_LIST) {
 			SelectStmt *stmt = castNode(SelectStmt, node);
 			stmt->targetList = list_make1(dummy_target());
-			printf("Select/targetList\n");
 		}
 		else if (IsA(node, SelectStmt) && attr == TRUNCATION_WHERE_CLAUSE) {
 			SelectStmt *stmt = castNode(SelectStmt, node);
 			stmt->whereClause = (Node *) dummy_column();
-			printf("Select/whereClause\n");
 		}
 		else if (IsA(node, SelectStmt) && attr == TRUNCATION_VALUES_LISTS) {
 			SelectStmt *stmt = castNode(SelectStmt, node);
 			stmt->valuesLists = list_make1(list_make1(dummy_column()));
-			printf("Select/valuesLists\n");
 		}
 		else if (IsA(node, UpdateStmt) && attr == TRUNCATION_TARGET_LIST) {
 			UpdateStmt *stmt = castNode(UpdateStmt, node);
 			stmt->targetList = list_make1(dummy_target());
-			printf("UpdateStmt/targetList\n");
 		}
 		else if (IsA(node, InsertStmt) && attr == TRUNCATION_COLS) {
 			InsertStmt *stmt = castNode(InsertStmt, node);
 			stmt->cols = list_make1(dummy_target());
-			printf("Insert/cols\n");
 		}
 		else if (IsA(node, UpdateStmt) && attr == TRUNCATION_WHERE_CLAUSE) {
 			UpdateStmt *stmt = castNode(UpdateStmt, node);
 			stmt->whereClause = (Node *) dummy_column();
-			printf("UpdateStmt/whereClause\n");
 		}
 		else if (IsA(node, DeleteStmt) && attr == TRUNCATION_WHERE_CLAUSE) {
 			DeleteStmt *stmt = castNode(DeleteStmt, node);
 			stmt->whereClause = (Node *) dummy_column();
-			printf("Delete/whereClause\n");
 		}
 		else if (IsA(node, CopyStmt) && attr == TRUNCATION_WHERE_CLAUSE) {
 			CopyStmt *stmt = castNode(CopyStmt, node);
 			stmt->whereClause = (Node *) dummy_column();
-			printf("Copy/whereClause\n");
 		}
 		else if (IsA(node, IndexStmt) && attr == TRUNCATION_WHERE_CLAUSE) {
 			IndexStmt *stmt = castNode(IndexStmt, node);
 			stmt->whereClause = (Node *) dummy_column();
-			printf("Index/whereClause\n");
 		}
 		else if (IsA(node, RuleStmt) && attr == TRUNCATION_WHERE_CLAUSE) {
 			RuleStmt *stmt = castNode(RuleStmt, node);
 			stmt->whereClause = (Node *) dummy_column();
-			printf("Rule/whereClause\n");
 		}
 		else if (IsA(node, CommonTableExpr) && attr == TRUNCATION_CTE_QUERY) {
 			CommonTableExpr *stmt = castNode(CommonTableExpr, node);
 			stmt->ctequery = dummy_select(NULL, (Node *) dummy_column(), NULL);
-			printf("CTE/cteQuery\n");
 		}
 		else if (IsA(node, InferClause) && attr == TRUNCATION_WHERE_CLAUSE) {
 			InferClause *stmt = castNode(InferClause, node);
 			stmt->whereClause = (Node *) dummy_column();
-			printf("InferClause/whereClause\n");
 		}
 		else if (IsA(node, OnConflictClause) && attr == TRUNCATION_TARGET_LIST) {
 			OnConflictClause *stmt = castNode(OnConflictClause, node);
 			stmt->targetList = list_make1(dummy_target());
-			printf("OnConflictClause/targetList\n");
 		}
 		else if (IsA(node, OnConflictClause) && attr == TRUNCATION_WHERE_CLAUSE) {
 			OnConflictClause *stmt = castNode(OnConflictClause, node);
 			stmt->whereClause = (Node *) dummy_column();
-			printf("OnConflictClause/whereClause\n");
 		}
 		else
-		{
-			fprintf(stderr, "ERROR: unimplemented truncation");
-			exit(1);
-		}
+			elog(ERROR, "apply_truncations() got unknown truncation type");
 
 		pfree(output);
 		output = pg_query_deparse_stmt_list_query((List *) tree);
