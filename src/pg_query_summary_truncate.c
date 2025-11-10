@@ -267,18 +267,14 @@ generate_possible_truncations(Node *node, TruncationState *state)
 		case T_DeleteStmt:
 			{
 				DeleteStmt *stmt = castNode(DeleteStmt, node);
-
 				add_truncation_where_clause(state, node, stmt->whereClause);
-
 				break;
 			}
 
 		case T_CopyStmt:
 			{
 				CopyStmt *stmt = castNode(CopyStmt, node);
-
 				add_truncation_where_clause(state, node, stmt->whereClause);
-
 				break;
 			}
 
