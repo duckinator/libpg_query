@@ -275,15 +275,6 @@ generate_possible_truncations(Node *node, TruncationState *state)
 				break;
 			}
 
-		case T_MergeStmt:
-			{
-				MergeStmt *stmt = castNode(MergeStmt, node);
-
-				printf("FIXME --- ADD MergeStmt SUPPORT\n");
-
-				break;
-			}
-
 		case T_DeleteStmt:
 			{
 				DeleteStmt *stmt = castNode(DeleteStmt, node);
@@ -459,12 +450,6 @@ static PgQueryError *apply_truncations(Summary *summary, Node *tree, TruncationS
 			UpdateStmt *stmt = castNode(UpdateStmt, node);
 			stmt->whereClause = (Node *) dummy_column();
 			printf("UpdateStmt/whereClause\n");
-		}
-		else if (IsA(node, MergeStmt) /*&& attr == ???*/) {
-			MergeStmt *stmt = castNode(MergeStmt, node);
-			printf("FIXME -- ADD MergeStmt SUPPORT\n");
-			// stmt->??? = (Node *) ???;
-			printf("MergeStmt/???\n");
 		}
 		else if (IsA(node, DeleteStmt) && attr == TRUNCATION_WHERE_CLAUSE) {
 			DeleteStmt *stmt = castNode(DeleteStmt, node);
