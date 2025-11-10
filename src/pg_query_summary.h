@@ -58,7 +58,7 @@ typedef struct
 	List	   *filter_columns; /* List of FilterColumn */
 	List	   *statement_types;	/* List of char * */
 
-	char	  *truncated_query;
+	char	   *truncated_query;
 }			Summary;
 
 typedef struct
@@ -94,7 +94,7 @@ extern bool pg_query_raw_tree_walker_supports(Node *node);
 
 extern void pg_query_summary_statement_walk(Summary * summary, Node *node);
 
-extern void pg_query_summary_truncate(Summary *summary, Node *node, int truncate_limit);
+extern void pg_query_summary_truncate(Summary * summary, Node *node, int truncate_limit);
 
 /*
  * This is like pg_query_summary(), but returns a (non-protobuf)
