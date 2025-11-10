@@ -186,6 +186,10 @@ static void truncate_mbstr(char *mbstr, size_t max_chars)
 static void add_truncation(TruncationState *state, enum TruncationAttr attr,
 		Node *node, int32_t length)
 {
+	// Don't bother truncating if it won't become shorter.
+	if (length <= 3)
+		return;
+
 	PossibleTruncation *truncation = palloc(sizeof(PossibleTruncation));
 
 	truncation->attr = attr;
@@ -389,9 +393,7 @@ static void apply_truncations(Summary *summary, Node *tree, TruncationState *sta
 		Node *node = truncation->node;
 		enum TruncationAttr attr = truncation->attr;
 
-		if (truncation->length <= 3) {
-			// If "truncating" would make it longer, refuse to truncate.
-		} else if (IsA(node, SelectStmt) && attr == TRUNCATION_TARGET_LIST)
+		if (IsA(node, SelectStmt) && attr == TRUNCATION_TARGET_LIST)
 			castNode(SelectStmt, node)->targetList = list_make1(dummy_target());
 		else if (IsA(node, SelectStmt) && attr == TRUNCATION_WHERE_CLAUSE)
 			castNode(SelectStmt, node)->whereClause = (Node *) dummy_column();
