@@ -250,10 +250,13 @@ generate_possible_truncations(Node *node, TruncationState *state)
 				break;
 			}
 
-		case T_IndexStmt:
+		case T_InsertStmt:
 			{
-				IndexStmt *stmt = castNode(IndexStmt, node);
-				add_truncation_where_clause(state, node, stmt->whereClause);
+				InsertStmt *stmt = castNode(InsertStmt, node);
+
+				if (stmt->cols != NULL)
+					add_truncation(state, TRUNCATION_COLS, node, cols_len(stmt->cols));
+
 				break;
 			}
 
@@ -299,13 +302,10 @@ generate_possible_truncations(Node *node, TruncationState *state)
 				break;
 			}
 
-		case T_InsertStmt:
+		case T_IndexStmt:
 			{
-				InsertStmt *stmt = castNode(InsertStmt, node);
-
-				if (stmt->cols != NULL)
-					add_truncation(state, TRUNCATION_COLS, node, cols_len(stmt->cols));
-
+				IndexStmt *stmt = castNode(IndexStmt, node);
+				add_truncation_where_clause(state, node, stmt->whereClause);
 				break;
 			}
 
