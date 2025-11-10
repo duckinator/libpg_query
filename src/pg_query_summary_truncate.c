@@ -395,62 +395,34 @@ static void apply_truncations(Summary *summary, Node *tree, TruncationState *sta
 
 		if (truncation->length <= 3) {
 			// If "truncating" would make it longer, refuse to truncate.
-		} else if (IsA(node, SelectStmt) && attr == TRUNCATION_TARGET_LIST) {
-			SelectStmt *stmt = castNode(SelectStmt, node);
-			stmt->targetList = list_make1(dummy_target());
-		}
-		else if (IsA(node, SelectStmt) && attr == TRUNCATION_WHERE_CLAUSE) {
-			SelectStmt *stmt = castNode(SelectStmt, node);
-			stmt->whereClause = (Node *) dummy_column();
-		}
-		else if (IsA(node, SelectStmt) && attr == TRUNCATION_VALUES_LISTS) {
-			SelectStmt *stmt = castNode(SelectStmt, node);
-			stmt->valuesLists = list_make1(list_make1(dummy_column()));
-		}
-		else if (IsA(node, UpdateStmt) && attr == TRUNCATION_TARGET_LIST) {
-			UpdateStmt *stmt = castNode(UpdateStmt, node);
-			stmt->targetList = list_make1(dummy_target());
-		}
-		else if (IsA(node, InsertStmt) && attr == TRUNCATION_COLS) {
-			InsertStmt *stmt = castNode(InsertStmt, node);
-			stmt->cols = list_make1(dummy_target());
-		}
-		else if (IsA(node, UpdateStmt) && attr == TRUNCATION_WHERE_CLAUSE) {
-			UpdateStmt *stmt = castNode(UpdateStmt, node);
-			stmt->whereClause = (Node *) dummy_column();
-		}
-		else if (IsA(node, DeleteStmt) && attr == TRUNCATION_WHERE_CLAUSE) {
-			DeleteStmt *stmt = castNode(DeleteStmt, node);
-			stmt->whereClause = (Node *) dummy_column();
-		}
-		else if (IsA(node, CopyStmt) && attr == TRUNCATION_WHERE_CLAUSE) {
-			CopyStmt *stmt = castNode(CopyStmt, node);
-			stmt->whereClause = (Node *) dummy_column();
-		}
-		else if (IsA(node, IndexStmt) && attr == TRUNCATION_WHERE_CLAUSE) {
-			IndexStmt *stmt = castNode(IndexStmt, node);
-			stmt->whereClause = (Node *) dummy_column();
-		}
-		else if (IsA(node, RuleStmt) && attr == TRUNCATION_WHERE_CLAUSE) {
-			RuleStmt *stmt = castNode(RuleStmt, node);
-			stmt->whereClause = (Node *) dummy_column();
-		}
-		else if (IsA(node, CommonTableExpr) && attr == TRUNCATION_CTE_QUERY) {
-			CommonTableExpr *stmt = castNode(CommonTableExpr, node);
-			stmt->ctequery = dummy_select(NULL, (Node *) dummy_column(), NULL);
-		}
-		else if (IsA(node, InferClause) && attr == TRUNCATION_WHERE_CLAUSE) {
-			InferClause *stmt = castNode(InferClause, node);
-			stmt->whereClause = (Node *) dummy_column();
-		}
-		else if (IsA(node, OnConflictClause) && attr == TRUNCATION_TARGET_LIST) {
-			OnConflictClause *stmt = castNode(OnConflictClause, node);
-			stmt->targetList = list_make1(dummy_target());
-		}
-		else if (IsA(node, OnConflictClause) && attr == TRUNCATION_WHERE_CLAUSE) {
-			OnConflictClause *stmt = castNode(OnConflictClause, node);
-			stmt->whereClause = (Node *) dummy_column();
-		}
+		} else if (IsA(node, SelectStmt) && attr == TRUNCATION_TARGET_LIST)
+			castNode(SelectStmt, node)->targetList = list_make1(dummy_target());
+		else if (IsA(node, SelectStmt) && attr == TRUNCATION_WHERE_CLAUSE)
+			castNode(SelectStmt, node)->whereClause = (Node *) dummy_column();
+		else if (IsA(node, SelectStmt) && attr == TRUNCATION_VALUES_LISTS)
+			castNode(SelectStmt, node)->valuesLists = list_make1(list_make1(dummy_column()));
+		else if (IsA(node, UpdateStmt) && attr == TRUNCATION_TARGET_LIST)
+			castNode(UpdateStmt, node)->targetList = list_make1(dummy_target());
+		else if (IsA(node, InsertStmt) && attr == TRUNCATION_COLS)
+			castNode(InsertStmt, node)->cols = list_make1(dummy_target());
+		else if (IsA(node, UpdateStmt) && attr == TRUNCATION_WHERE_CLAUSE)
+			castNode(UpdateStmt, node)->whereClause = (Node *) dummy_column();
+		else if (IsA(node, DeleteStmt) && attr == TRUNCATION_WHERE_CLAUSE)
+			castNode(DeleteStmt, node)->whereClause = (Node *) dummy_column();
+		else if (IsA(node, CopyStmt) && attr == TRUNCATION_WHERE_CLAUSE)
+			castNode(CopyStmt, node)->whereClause = (Node *) dummy_column();
+		else if (IsA(node, IndexStmt) && attr == TRUNCATION_WHERE_CLAUSE)
+			castNode(IndexStmt, node)->whereClause = (Node *) dummy_column();
+		else if (IsA(node, RuleStmt) && attr == TRUNCATION_WHERE_CLAUSE)
+			castNode(RuleStmt, node)->whereClause = (Node *) dummy_column();
+		else if (IsA(node, CommonTableExpr) && attr == TRUNCATION_CTE_QUERY)
+			castNode(CommonTableExpr, node)->ctequery = dummy_select(NULL, (Node *) dummy_column(), NULL);
+		else if (IsA(node, InferClause) && attr == TRUNCATION_WHERE_CLAUSE)
+			castNode(InferClause, node)->whereClause = (Node *) dummy_column();
+		else if (IsA(node, OnConflictClause) && attr == TRUNCATION_TARGET_LIST)
+			castNode(OnConflictClause, node)->targetList = list_make1(dummy_target());
+		else if (IsA(node, OnConflictClause) && attr == TRUNCATION_WHERE_CLAUSE)
+			castNode(OnConflictClause, node)->whereClause = (Node *) dummy_column();
 		else
 			elog(ERROR, "apply_truncations() got unknown truncation type");
 
