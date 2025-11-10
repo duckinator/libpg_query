@@ -394,35 +394,16 @@ static int cmp_possible_truncations(const ListCell *a, const ListCell *b)
 	return pt_b->length - pt_a->length;
 }
 
-static void expand_ellipses(char *str)
+static void global_replace(char *str, char *pattern, char *replacement)
 {
-	// https://www.compart.com/en/unicode/U+2026
-	// pattern is a double quote, ellipses, and another double quote.
-	char pattern[5] = {'"', 0xE2, 0x80, 0xA6, '"'};
-
-	for (size_t i = 0; i < strlen(str); i++) {
-		if (memcmp(str + i, pattern, 5) == 0) {
-			size_t len = strlen(str + i + 5);
-			memcpy(str + i, "...", 3);
-			memmove(str + i + 3, str + i + 5, len + 1);
-		}
-	}
-}
-
-// This is equivalent to a kludge in the Rust implementation.
-// Not sure why the `SELECT ... AS ...` shows up in both Rust and C,
-// but not the Ruby implementation.
-static void remove_unneeded_as(char *str)
-{
-	char *pattern = "SELECT ... AS ...";
 	size_t plen = strlen(pattern);
-
-	size_t slen = strlen("SELECT ...");
+	size_t rlen = strlen(replacement);
 
 	for (size_t i = 0; i < strlen(str); i++) {
 		if (memcmp(str + i, pattern, plen) == 0) {
 			size_t len = strlen(str + i + plen);
-			memmove(str + i + slen, str + i + plen, len + 1);
+			memcpy(str + i, replacement, rlen);
+			memmove(str + i + rlen, str + i + plen, len + 1);
 		}
 	}
 }
@@ -541,8 +522,9 @@ static PgQueryError *apply_truncations(Summary *summary, Node *tree, TruncationS
 
 		pg_query_free_deparse_result(result);
 
-		expand_ellipses(output);
-		remove_unneeded_as(output);
+		global_replace(output, "SELECT \"…\" AS \"…\"", "SELECT \"…\"");
+		global_replace(output, "SELECT WHERE \"…\"", "\"…\"");
+		global_replace(output, "\"…\"", "...");
 
 		if (strlen(output) <= truncation_limit) {
 			summary->truncated_query = output;
