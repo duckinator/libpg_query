@@ -461,7 +461,7 @@ static PgQueryError *apply_truncations(Summary *summary, Node *tree, TruncationS
 		}
 		else if (IsA(node, SelectStmt) && attr == TRUNCATION_VALUES_LISTS) {
 			SelectStmt *stmt = castNode(SelectStmt, node);
-			stmt->valuesLists = list_make1(dummy_column());
+			stmt->valuesLists = list_make1(list_make1(dummy_column()));
 			printf("Select/valuesLists\n");
 		}
 		else if (IsA(node, UpdateStmt) && attr == TRUNCATION_TARGET_LIST) {
