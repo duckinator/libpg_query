@@ -739,10 +739,15 @@ runner.deep_resolve('raw_expression_tree_walker_impl')
 runner.deep_resolve('hash_bytes')
 runner.deep_resolve('MemoryContextAllocExtended')
 
+# Needed for summary
+runner.deep_resolve('makeRangeVarFromNameList')
+runner.deep_resolve('list_sort')
+runner.deep_resolve('pg_mbcharcliplen')
+runner.deep_resolve('pg_mbstrlen')
+
 # Other required functions
 runner.deep_resolve('pg_printf')
 runner.deep_resolve('pg_strncasecmp')
-runner.deep_resolve('makeRangeVarFromNameList')
 
 # Retain these functions for optional 32-bit support
 # (see BITS_PER_BITMAPWORD checks in bitmapset.c)

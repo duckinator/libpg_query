@@ -22,6 +22,7 @@
  * - list_delete_last
  * - list_insert_nth
  * - insert_new_cell
+ * - list_sort
  *--------------------------------------------------------------------
  */
 
@@ -1038,7 +1039,19 @@ list_copy_deep(const List *oldlist)
  *
  * This is based on qsort(), so it likewise has O(N log N) runtime.
  */
+void
+list_sort(List *list, list_sort_comparator cmp)
+{
+	typedef int (*qsort_comparator) (const void *a, const void *b);
+	int			len;
 
+	check_list_invariants(list);
+
+	/* Nothing to do if there's less than two elements */
+	len = list_length(list);
+	if (len > 1)
+		qsort(list->elements, len, sizeof(ListCell), (qsort_comparator) cmp);
+}
 
 /*
  * list_sort comparator for sorting a list into ascending int order.
