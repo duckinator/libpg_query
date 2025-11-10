@@ -114,7 +114,6 @@ enum TruncationAttr {
 };
 
 typedef struct {
-	PgQueryError *error;
 	List *truncations;
 	int32_t depth;
 } TruncationState;
@@ -127,8 +126,7 @@ typedef struct {
 } PossibleTruncation;
 
 static bool generate_possible_truncations(Node *tree, TruncationState *state);
-//static void sort_truncations(Node *node, TruncationState *state);
-static PgQueryError *apply_truncations(Summary *summary, Node *tree, TruncationState *state, int truncate_limit);
+static void apply_truncations(Summary *summary, Node *tree, TruncationState *state, int truncate_limit);
 static int cmp_possible_truncations(const ListCell *a, const ListCell *b);
 
 static int32_t select_target_list_len(List *nodes);
@@ -143,38 +141,29 @@ static Node *dummy_select(List *targetList, Node *whereClause, List *valuesLists
 static Node *dummy_insert(List *cols);
 static Node *dummy_update(List *targetList);
 
-/*
- * Given a walked parse tree and summary, store the truncated version in `summary`.
- *
- * Returns NULL on success.
- */
-PgQueryError *pg_query_summary_truncate(Summary *summary, Node *tree, int truncate_limit)
+static char *pg_query_deparse_stmt_query(Node *node);
+static PgQueryDeparseResult pg_query_deparse_stmt_or_error(Node *node);
+static char *pg_query_deparse_stmt_list_query(List *stmts);
+static PgQueryDeparseResult pg_query_deparse_stmt_list_or_error(List *stmts);
+
+// Given a walked parse tree and summary, store the truncated version in `summary`.
+void pg_query_summary_truncate(Summary *summary, Node *tree, int truncate_limit)
 {
-	TruncationState state = {NULL, NULL, 0};
+	TruncationState state = {NULL, 0};
 
-	PgQueryDeparseResult result = pg_query_deparse_stmt_list((List *) tree);
-
-	if (result.error)
-		return result.error;
-
-	char *output = pstrdup(result.query);
-
-	pg_query_free_deparse_result(result);
+	char *output = pg_query_deparse_stmt_list_query((List *) tree);
 
 	if (strlen(output) <= truncate_limit) {
 		summary->truncated_query = output;
-		return NULL;
+		return;
 	}
 
 	pfree(output);
 
 	generate_possible_truncations(tree, &state);
 
-	if (state.error)
-		return state.error;
-
 	list_sort(state.truncations, cmp_possible_truncations);
-	return apply_truncations(summary, tree, &state, truncate_limit);
+	apply_truncations(summary, tree, &state, truncate_limit);
 }
 
 static void truncate_mbstr(char *mbstr, size_t max_chars)
@@ -312,15 +301,7 @@ generate_possible_truncations(Node *node, TruncationState *state)
 				CommonTableExpr *stmt = castNode(CommonTableExpr, node);
 
 				if (stmt->ctequery != NULL) {
-					PgQueryDeparseResult result = pg_query_deparse_stmt((Node *) stmt->ctequery);
-
-					if (result.error) {
-						state->error = result.error;
-						return false;
-					}
-
-					char *query = pstrdup(result.query);
-					pg_query_free_deparse_result(result);
+					char *query = pg_query_deparse_stmt_query((Node *) stmt->ctequery);
 
 					add_truncation(state,
 							TRUNCATION_CTE_QUERY,
@@ -399,18 +380,11 @@ static void global_replace(char *str, char *pattern, char *replacement)
 	}
 }
 
-static PgQueryError *apply_truncations(Summary *summary, Node *tree, TruncationState *state, int truncation_limit)
+static void apply_truncations(Summary *summary, Node *tree, TruncationState *state, int truncation_limit)
 {
 	List *truncations = state->truncations;
 
-	PgQueryDeparseResult result = pg_query_deparse_stmt_list((List *) tree);
-	// Default value for `output`, if state->truncations has nothing usable.
-	char *output = pstrdup(result.query);
-
-	if (result.error)
-		return result.error;
-
-	pg_query_free_deparse_result(result);
+	char *output = pg_query_deparse_stmt_list_query((List *) tree);
 
 	ListCell *lc;
 	foreach(lc, state->truncations) {
@@ -497,15 +471,8 @@ static PgQueryError *apply_truncations(Summary *summary, Node *tree, TruncationS
 			exit(1);
 		}
 
-		PgQueryDeparseResult result = pg_query_deparse_stmt_list((List *) tree);
-
-		if (result.error)
-			return result.error;
-
 		pfree(output);
-		output = pstrdup(result.query);
-
-		pg_query_free_deparse_result(result);
+		output = pg_query_deparse_stmt_list_query((List *) tree);
 
 		global_replace(output, "SELECT \"…\" AS \"…\"", "SELECT \"…\"");
 		global_replace(output, "SELECT WHERE \"…\"", "\"…\"");
@@ -513,13 +480,12 @@ static PgQueryError *apply_truncations(Summary *summary, Node *tree, TruncationS
 
 		if (strlen(output) <= truncation_limit) {
 			summary->truncated_query = output;
-			return NULL;
+			return;
 		}
 	}
 
 	truncate_mbstr(output, truncation_limit);
 	summary->truncated_query = output;
-	return NULL;
 }
 
 static ColumnRef *dummy_column(void)
@@ -586,66 +552,85 @@ static Node *dummy_update(List *targetList)
 }
 
 static int32_t select_target_list_len(List *nodes) {
-	PgQueryDeparseResult result = pg_query_deparse_stmt(dummy_select(nodes, NULL, NULL));
-
-	if (result.error)
-		elog(ERROR, "%s: %s", __func__, result.error->message);
-
+	PgQueryDeparseResult result = pg_query_deparse_stmt_or_error(dummy_select(nodes, NULL, NULL));
 	int32_t length = (int32_t)strlen(result.query) - 7; // "SELECT "
-
 	pg_query_free_deparse_result(result);
-
 	return length;
 }
 
 static int32_t select_values_lists_len(List *nodes) {
-	PgQueryDeparseResult result = pg_query_deparse_stmt(dummy_select(NULL, NULL, nodes));
-
-	if (result.error)
-		elog(ERROR, "%s: %s", __func__, result.error->message);
-
+	PgQueryDeparseResult result = pg_query_deparse_stmt_or_error(dummy_select(NULL, NULL, nodes));
 	int32_t length = (int32_t)strlen(result.query) - 9; // "VALUES ()"
-
 	pg_query_free_deparse_result(result);
-
 	return length;
 }
 
 static int32_t update_target_list_len(List *nodes) {
-	PgQueryDeparseResult result = pg_query_deparse_stmt(dummy_update(nodes));
-
-	if (result.error)
-		elog(ERROR, "%s: %s", __func__, result.error->message);
-
+	PgQueryDeparseResult result = pg_query_deparse_stmt_or_error(dummy_update(nodes));
 	int32_t length = (int32_t)strlen(result.query) - 13; // "UPDATE x SET "
-
 	pg_query_free_deparse_result(result);
-
 	return length;
 }
 
 static int32_t where_clause_len(Node *node) {
-	PgQueryDeparseResult result = pg_query_deparse_stmt(dummy_select(NULL, node, NULL));
-
-	if (result.error)
-		elog(ERROR, "%s: %s", __func__, result.error->message);
-
+	PgQueryDeparseResult result = pg_query_deparse_stmt_or_error(dummy_select(NULL, node, NULL));
 	int32_t length = (int32_t)strlen(result.query) - 13; // "SELECT WHERE "
-
 	pg_query_free_deparse_result(result);
-
 	return length;
 }
 
 static int32_t cols_len(List *nodes) {
-	PgQueryDeparseResult result = pg_query_deparse_stmt(dummy_insert(nodes));
-
-	if (result.error)
-		elog(ERROR, "%s: %s", __func__, result.error->message);
-
+	PgQueryDeparseResult result = pg_query_deparse_stmt_or_error(dummy_insert(nodes));
 	int32_t length = (int32_t)strlen(result.query) - 31; // "INSERT INTO x () DEFAULT VALUES"
+	pg_query_free_deparse_result(result);
+	return length;
+}
+
+static char *pg_query_deparse_stmt_query(Node *node)
+{
+	PgQueryDeparseResult result = pg_query_deparse_stmt_or_error(node);
+
+	char *query = pstrdup(result.query);
 
 	pg_query_free_deparse_result(result);
 
-	return length;
+	return query;
+}
+
+static PgQueryDeparseResult pg_query_deparse_stmt_or_error(Node *node)
+{
+	PgQueryDeparseResult result = pg_query_deparse_stmt(node);
+
+	if (result.error)
+		elog(ERROR, "%s:%s:%i:%i: %s",
+				result.error->filename,
+				result.error->funcname,
+				result.error->lineno,
+				result.error->cursorpos,
+				result.error->message);
+
+	return result;
+}
+
+static char *pg_query_deparse_stmt_list_query(List *stmts)
+{
+	PgQueryDeparseResult result = pg_query_deparse_stmt_list_or_error(stmts);
+	char *query = pstrdup(result.query);
+	pg_query_free_deparse_result(result);
+	return query;
+}
+
+static PgQueryDeparseResult pg_query_deparse_stmt_list_or_error(List *stmts)
+{
+	PgQueryDeparseResult result = pg_query_deparse_stmt_list(stmts);
+
+	if (result.error)
+		elog(ERROR, "%s:%s:%i:%i: %s",
+				result.error->filename,
+				result.error->funcname,
+				result.error->lineno,
+				result.error->cursorpos,
+				result.error->message);
+
+	return result;
 }
