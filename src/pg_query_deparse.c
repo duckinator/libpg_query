@@ -12,9 +12,8 @@
 
 PgQueryDeparseResult pg_query_deparse_stmt(Node *node)
 {
-	if (IsA(node, List)) {
+	if (IsA(node, List))
 		elog(ERROR, "expected node argument to not be a List.");
-	}
 
 	if (!IsA(node, RawStmt)) {
 		RawStmt *raw = makeNode(RawStmt);
@@ -29,9 +28,8 @@ PgQueryDeparseResult pg_query_deparse_stmt(Node *node)
 
 PgQueryDeparseResult pg_query_deparse_stmt_list(List *stmts)
 {
-	if (!IsA(stmts, List)) {
-		elog(ERROR, "expected stmts argument to be a List*.");
-	}
+	if (!IsA(stmts, List))
+		elog(ERROR, "expected stmts argument to be a List.");
 
 	PostgresDeparseOpts opts;
 	MemSet(&opts, 0, sizeof(PostgresDeparseOpts));
