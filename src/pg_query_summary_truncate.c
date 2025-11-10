@@ -46,10 +46,8 @@ static Node *dummy_select(List *targetList, Node *whereClause, List *valuesLists
 static Node *dummy_insert(List *cols);
 static Node *dummy_update(List *targetList);
 
-static char *pg_query_deparse_stmt_query(Node *node);
-static PgQueryDeparseResult pg_query_deparse_stmt_or_error(Node *node);
-static char *pg_query_deparse_stmt_list_query(List *stmts);
-static PgQueryDeparseResult pg_query_deparse_stmt_list_or_error(List *stmts);
+static size_t deparse_stmt_len(Node *node);
+static StringInfo deparse_raw_stmt_list(List *stmts);
 
 /*  Given a walked parse tree and summary, store the truncated version in `summary`. */
 void
@@ -57,15 +55,15 @@ pg_query_summary_truncate(Summary * summary, Node *tree, int truncate_limit)
 {
 	TruncationState state = {NULL, 0};
 
-	char	   *output = pg_query_deparse_stmt_list_query((List *) tree);
+	StringInfo	output = deparse_raw_stmt_list((List *) tree);
 
-	if (strlen(output) <= truncate_limit)
+	if (output->len <= truncate_limit)
 	{
-		summary->truncated_query = output;
+		summary->truncated_query = strdup(output->data);
 		return;
 	}
 
-	pfree(output);
+	destroyStringInfo(output);
 
 	generate_possible_truncations(tree, &state);
 
@@ -216,12 +214,12 @@ generate_possible_truncations(Node *node, TruncationState * state)
 
 				if (stmt->ctequery != NULL)
 				{
-					char	   *query = pg_query_deparse_stmt_query((Node *) stmt->ctequery);
+					size_t		query_len = deparse_stmt_len((Node *) stmt->ctequery);
 
 					add_truncation(state,
 								   TRUNCATION_CTE_QUERY,
 								   node,
-								   strlen(query));
+								   query_len);
 				}
 
 				break;
@@ -306,9 +304,7 @@ static void
 apply_truncations(Summary * summary, Node *tree, TruncationState * state, int truncation_limit)
 {
 	List	   *truncations = state->truncations;
-
-	char	   *output = pg_query_deparse_stmt_list_query((List *) tree);
-
+	StringInfo	output = NULL;
 	ListCell   *lc;
 
 	foreach(lc, state->truncations)
@@ -349,22 +345,27 @@ apply_truncations(Summary * summary, Node *tree, TruncationState * state, int tr
 		else
 			elog(ERROR, "apply_truncations() got unknown truncation type");
 
-		pfree(output);
-		output = pg_query_deparse_stmt_list_query((List *) tree);
+		if (output)
+			destroyStringInfo(output);
+		output = deparse_raw_stmt_list((List *) tree);
 
-		global_replace(output, "SELECT \"…\" AS \"…\"", "SELECT \"…\"");
-		global_replace(output, "SELECT WHERE \"…\"", "\"…\"");
-		global_replace(output, "\"…\"", "...");
+		global_replace(output->data, "SELECT \"…\" AS \"…\"", "SELECT \"…\"");
+		global_replace(output->data, "SELECT WHERE \"…\"", "\"…\"");
+		global_replace(output->data, "\"…\"", "...");
 
-		if (strlen(output) <= truncation_limit)
+		if (strlen(output->data) <= truncation_limit)
 		{
-			summary->truncated_query = output;
+			summary->truncated_query = strdup(output->data);
 			return;
 		}
 	}
 
-	truncate_mbstr(output, truncation_limit);
-	summary->truncated_query = output;
+	if (!output)
+		output = deparse_raw_stmt_list((List *) tree);
+
+	truncate_mbstr(output->data, truncation_limit);
+	summary->truncated_query = strdup(output->data);
+	destroyStringInfo(output);
 }
 
 static ColumnRef *
@@ -447,106 +448,81 @@ dummy_update(List *targetList)
 static int32_t
 select_target_list_len(List *nodes)
 {
-	PgQueryDeparseResult result = pg_query_deparse_stmt_or_error(dummy_select(nodes, NULL, NULL));
-	int32_t		dummy_len = 7;	/* "SELECT " */
-	int32_t		length = (int32_t) strlen(result.query) - dummy_len;
+	size_t		result_len = deparse_stmt_len(dummy_select(nodes, NULL, NULL));
+	size_t		dummy_len = 7;	/* "SELECT " */
 
-	pg_query_free_deparse_result(result);
-	return length;
+	return (int32_t) result_len - dummy_len;
 }
 
 static int32_t
 select_values_lists_len(List *nodes)
 {
-	PgQueryDeparseResult result = pg_query_deparse_stmt_or_error(dummy_select(NULL, NULL, nodes));
-	int32_t		dummy_len = 9;	/* "VALUES ()" */
-	int32_t		length = (int32_t) strlen(result.query) - dummy_len;
+	size_t		result_len = deparse_stmt_len(dummy_select(NULL, NULL, nodes));
+	size_t		dummy_len = 9;	/* "VALUES ()" */
 
-	pg_query_free_deparse_result(result);
-	return length;
+	return (int32_t) result_len - dummy_len;
 }
 
 static int32_t
 update_target_list_len(List *nodes)
 {
-	PgQueryDeparseResult result = pg_query_deparse_stmt_or_error(dummy_update(nodes));
-	int32_t		dummy_len = 13; /* "UPDATE x SET " */
-	int32_t		length = (int32_t) strlen(result.query) - dummy_len;
+	size_t		result_len = deparse_stmt_len(dummy_update(nodes));
+	size_t		dummy_len = 13; /* "UPDATE x SET " */
 
-	pg_query_free_deparse_result(result);
-	return length;
+	return (int32_t) result_len - dummy_len;
 }
 
 static int32_t
 where_clause_len(Node *node)
 {
-	PgQueryDeparseResult result = pg_query_deparse_stmt_or_error(dummy_select(NULL, node, NULL));
-	int32_t		dummy_len = 13; /* "SELECT WHERE " */
-	int32_t		length = (int32_t) strlen(result.query) - dummy_len;
+	size_t		result_len = deparse_stmt_len(dummy_select(NULL, node, NULL));
+	size_t		dummy_len = 13; /* "SELECT WHERE " */
 
-	pg_query_free_deparse_result(result);
-	return length;
+	return (int32_t) result_len - dummy_len;
 }
 
 static int32_t
 cols_len(List *nodes)
 {
-	PgQueryDeparseResult result = pg_query_deparse_stmt_or_error(dummy_insert(nodes));
-	int32_t		dummy_len = 31; /* "INSERT INTO x () DEFAULT VALUES" */
-	int32_t		length = (int32_t) strlen(result.query) - dummy_len;
+	size_t		result_len = deparse_stmt_len(dummy_insert(nodes));
+	size_t		dummy_len = 31; /* "INSERT INTO x () DEFAULT VALUES" */
 
-	pg_query_free_deparse_result(result);
-	return length;
+	return (int32_t) result_len - dummy_len;
 }
 
-static char *
-pg_query_deparse_stmt_query(Node *node)
+static size_t
+deparse_stmt_len(Node *node)
 {
-	PgQueryDeparseResult result = pg_query_deparse_stmt_or_error(node);
+	if (!IsA(node, RawStmt))
+	{
+		RawStmt    *raw = makeNode(RawStmt);
 
-	char	   *query = pstrdup(result.query);
+		raw->stmt = node;
+		raw->stmt_location = -1;
+		raw->stmt_len = 0;
+		node = (Node *) raw;
+	}
 
-	pg_query_free_deparse_result(result);
+	StringInfo	str = deparse_raw_stmt_list(list_make1(node));
+	size_t		len = str->len;
 
-	return query;
+	destroyStringInfo(str);
+	return len;
 }
 
-static PgQueryDeparseResult pg_query_deparse_stmt_or_error(Node *node)
+static StringInfo
+deparse_raw_stmt_list(List *stmts)
 {
-	PgQueryDeparseResult result = pg_query_deparse_stmt(node);
+	PostgresDeparseOpts opts = {0};
+	StringInfo	str = makeStringInfo();
+	ListCell   *lc;
 
-	if (result.error)
-		elog(ERROR, "%s:%s:%i:%i: %s",
-			 result.error->filename,
-			 result.error->funcname,
-			 result.error->lineno,
-			 result.error->cursorpos,
-			 result.error->message);
+	foreach(lc, stmts)
+	{
+		deparseRawStmtOpts(str, castNode(RawStmt, lfirst(lc)), opts);
+		if (lnext(stmts, lc))
+			appendStringInfoString(str, "; ");
+	}
 
-	return result;
-}
-
-static char *
-pg_query_deparse_stmt_list_query(List *stmts)
-{
-	PgQueryDeparseResult result = pg_query_deparse_stmt_list_or_error(stmts);
-	char	   *query = pstrdup(result.query);
-
-	pg_query_free_deparse_result(result);
-	return query;
-}
-
-static PgQueryDeparseResult pg_query_deparse_stmt_list_or_error(List *stmts)
-{
-	PgQueryDeparseResult result = pg_query_deparse_stmt_list(stmts);
-
-	if (result.error)
-		elog(ERROR, "%s:%s:%i:%i: %s",
-			 result.error->filename,
-			 result.error->funcname,
-			 result.error->lineno,
-			 result.error->cursorpos,
-			 result.error->message);
-
-	return result;
+	return str;
 }

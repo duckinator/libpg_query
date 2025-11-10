@@ -856,16 +856,44 @@ pg_query_summary_internal(const char *input, int parser_options, int truncate_li
 PgQuerySummaryParseResult
 pg_query_summary(const char *input, int parser_options, int truncate_limit)
 {
-	MemoryContext ctx = pg_query_enter_memory_context();
-	PgQuerySummaryParseResultInternal internal_result =
-		pg_query_summary_internal(input, parser_options, truncate_limit);
 	PgQuerySummaryParseResult result = {0};
+	MemoryContext ctx = pg_query_enter_memory_context();
 
-	result.stderr_buffer = internal_result.stderr_buffer;
-	result.error = internal_result.error;
+	PG_TRY();
+	{
+		PgQuerySummaryParseResultInternal internal_result =
+			pg_query_summary_internal(input, parser_options, truncate_limit);
 
-	if (result.error == NULL)
-		summary_to_protobuf(&result, &internal_result.summary);
+		result.stderr_buffer = internal_result.stderr_buffer;
+		result.error = internal_result.error;
+
+		if (result.error == NULL)
+			summary_to_protobuf(&result, &internal_result.summary);
+	}
+	PG_CATCH();
+	{
+		ErrorData  *error_data;
+		PgQueryError *error;
+
+		MemoryContextSwitchTo(ctx);
+		error_data = CopyErrorData();
+
+		/*
+		 * Note: This is intentionally malloc so exiting the memory context
+		 * doesn't free this
+		 */
+		error = malloc(sizeof(PgQueryError));
+		error->message = strdup(error_data->message);
+		error->filename = strdup(error_data->filename);
+		error->funcname = strdup(error_data->funcname);
+		error->context = NULL;
+		error->lineno = error_data->lineno;
+		error->cursorpos = error_data->cursorpos;
+
+		result.error = error;
+		FlushErrorState();
+	}
+	PG_END_TRY();
 
 	pg_query_exit_memory_context(ctx);
 

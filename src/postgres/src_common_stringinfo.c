@@ -10,6 +10,7 @@
  * - appendStringInfo
  * - appendStringInfoSpaces
  * - makeStringInfo
+ * - destroyStringInfo
  *--------------------------------------------------------------------
  */
 
@@ -361,4 +362,12 @@ enlargeStringInfo(StringInfo str, int needed)
  * Frees a StringInfo and its buffer (opposite of makeStringInfo()).
  * This must only be called on palloc'd StringInfos.
  */
+void
+destroyStringInfo(StringInfo str)
+{
+	/* don't allow destroys of read-only StringInfos */
+	Assert(str->maxlen != 0);
 
+	pfree(str->data);
+	pfree(str);
+}

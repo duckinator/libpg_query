@@ -744,6 +744,7 @@ runner.deep_resolve('makeRangeVarFromNameList')
 runner.deep_resolve('list_sort')
 runner.deep_resolve('pg_mbcharcliplen')
 runner.deep_resolve('pg_mbstrlen')
+runner.deep_resolve('destroyStringInfo')
 
 # Other required functions
 runner.deep_resolve('pg_printf')

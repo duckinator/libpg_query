@@ -22,8 +22,4 @@ void		pg_query_free_error(PgQueryError * error);
 MemoryContext pg_query_enter_memory_context();
 void		pg_query_exit_memory_context(MemoryContext ctx);
 
-PgQueryDeparseResult pg_query_deparse_stmt(Node *node);
-PgQueryDeparseResult pg_query_deparse_stmt_list(List *stmts);
-PgQueryDeparseResult pg_query_deparse_opts(List *stmts, PostgresDeparseOpts opts);
-
 #endif
