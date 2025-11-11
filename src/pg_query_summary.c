@@ -775,13 +775,9 @@ summary_to_protobuf(PgQuerySummaryParseResult * result, Summary * summary)
 	}
 
 	if (summary->truncated_query == NULL)
-	{
 		sr.truncated_query = pstrdup("");
-	}
 	else
-	{
 		sr.truncated_query = summary->truncated_query;
-	}
 
 	size_t		len = pg_query__summary_result__get_packed_size(&sr);
 
