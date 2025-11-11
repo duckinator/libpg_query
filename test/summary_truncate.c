@@ -177,18 +177,6 @@ char_truncate_works(TestState * test_state)
 	TEST_ASSERT_STR_EQUAL(result.truncated_query, output);;
 }
 
-/*
-#[should_panic(
-    expected = "byte index 22 is not a char boundary; it is inside 'は' (bytes 21..24) of `WITH \"原チコ氏にはす腹腹腹腹腹腹腹腹腹腹腹\" AS (SELECT) SELECT w`"
-)]
-*/
-/*
-void byte_truncate_fails(TestState* test_state) {
-    char* query = "WITH \"原チコ氏にはす腹腹腹腹腹腹腹腹腹腹腹\" AS (SELECT) SELECT w".to_string();
-    query[0..=21].to_string();
-}
-*/
-
 int
 main(int argc, char *argv[])
 {
@@ -207,7 +195,6 @@ main(int argc, char *argv[])
 		&it_does_not_segfault_on_target_list_from_CTE_already_removed_from_possible_truncations,
 		&it_handles_CREATE_INDEX,
 		&char_truncate_works,
-		/* &byte_truncate_fails, */
 		NULL
 	};
 
