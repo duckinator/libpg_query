@@ -59,7 +59,7 @@ pg_query_summary_truncate(Summary * summary, Node *tree, int truncate_limit)
 
 	if (output->len <= truncate_limit)
 	{
-		summary->truncated_query = strdup(output->data);
+		summary->truncated_query = output->data;
 		return;
 	}
 
@@ -355,7 +355,7 @@ apply_truncations(Summary * summary, Node *tree, TruncationState * state, int tr
 
 		if (strlen(output->data) <= truncation_limit)
 		{
-			summary->truncated_query = strdup(output->data);
+			summary->truncated_query = output->data;
 			return;
 		}
 	}
@@ -364,8 +364,7 @@ apply_truncations(Summary * summary, Node *tree, TruncationState * state, int tr
 		output = deparse_raw_stmt_list((List *) tree);
 
 	truncate_mbstr(output->data, truncation_limit);
-	summary->truncated_query = strdup(output->data);
-	destroyStringInfo(output);
+	summary->truncated_query = output->data;
 }
 
 static ColumnRef *

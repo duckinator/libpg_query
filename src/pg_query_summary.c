@@ -819,6 +819,8 @@ summary_to_protobuf(PgQuerySummaryParseResult * result, Summary * summary)
 	for (size_t i = 0; i < sr.n_filter_columns; i++)
 		pfree(sr.filter_columns[i]);
 	pfree(sr.filter_columns);
+
+	pfree (sr.truncated_query);
 }
 
 /*
