@@ -620,11 +620,10 @@ pg_query_summary_walk(Summary * summary, Node *tree)
 
 	/*
 	 * NOTE regarding cte_names and range_vars:
-	 *
-	 * - We process cte_names as we iterate through the tree. - We only add
-	 * items to tables if they are *not* in cte_names. - CTEs can be defined
-	 * *after* they're referenced as names. - Because of this, we have to
-	 * store range_vars and process it after the initial tree walk.
+	 * - We process cte_names as we iterate through the tree.
+	 * - We only add items to tables if they are *not* in cte_names.
+	 * - CTEs can be defined *after* they're referenced as names.
+	 * - Due to this, we store range_vars and process it after the tree walk.
 	 *
 	 * If we try to do it entirely on the initial pass, we wind up with CTEs
 	 * being included in state->tables, and thus in summary->tables.
