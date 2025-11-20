@@ -198,5 +198,5 @@ main(int argc, char *argv[])
 		NULL
 	};
 
-	return test_run_with_mcxt(tests, NULL);
+	return test_run_with_mcxt(argc, argv, tests, NULL);
 }

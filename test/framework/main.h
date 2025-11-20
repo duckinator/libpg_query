@@ -40,6 +40,7 @@
 
 typedef struct
 {
+	char		*wanted_test;
 	size_t		passed;
 	size_t		failed;
 	size_t		skipped;
@@ -50,6 +51,7 @@ typedef void (TestFn) (TestState * test_state);
 typedef void (TestCleanupFn) (void);
 
 /* Functions defined in framework/main.c */
+int			TEST_INIT_impl(TestState * test_state, const char *func, size_t line);
 int			TEST_BOUNDED_STRCMP(char *s1, char *s2);
 void		TEST_ASSERT_NULL_impl(TestState * test_state, char *actual_str, void *actual);
 void		TEST_ASSERT_LIST_EQUAL_impl(TestState * test_state, char *actual_str, List *actual, List *expected);
@@ -63,7 +65,7 @@ void		TEST_ASSERT_STR_EQUAL_impl(TestState * test_state, char *actual_str, char 
 #define TEST_SKIP(...) (printf("  SKIP: " __VA_ARGS__), test_state->skipped++)
 
 /* Prints the name of the test and the line number. */
-#define TEST_INIT() printf("%s (line %i)\n", __func__, __LINE__)
+#define TEST_INIT() do { if (TEST_INIT_impl(test_state, __func__, __LINE__) != 0) return; } while(0)
 
 /* Assert that `actual` is NULL. */
 #define TEST_ASSERT_NULL(actual) TEST_ASSERT_NULL_impl(test_state, #actual, actual)
@@ -79,8 +81,9 @@ void		TEST_ASSERT_STR_EQUAL_impl(TestState * test_state, char *actual_str, char 
 
 /* Run each test in order, passing the same TestState object. */
 /* `test_cleanup()` is run between each test if it is not NULL. */
-int			test_run(TestFn * tests[], TestCleanupFn * test_cleanup);
-int			test_run_with_mcxt(TestFn * tests[], TestCleanupFn * test_cleanup);
+/* If argc is >1, the first argument is treated as a filter for tests. */
+int			test_run(int argc, char *argv[], TestFn * tests[], TestCleanupFn * test_cleanup);
+int			test_run_with_mcxt(int argc, char *argv[], TestFn * tests[], TestCleanupFn * test_cleanup);
 
 #define TEST_LIST_MAKE6(a,b,c,d,e,f) lappend(list_make5(a,b,c,d,e), f)
 #define TEST_LIST_MAKE7(a,b,c,d,e,f,g) lappend(TEST_LIST_MAKE6(a,b,c,d,e,f), g)

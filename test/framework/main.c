@@ -12,6 +12,16 @@
 const size_t ARBITRARY_LENGTH_LIMIT = 500;
 
 int
+TEST_INIT_impl(TestState * test_state, const char *func, size_t line)
+{
+    if ((test_state->wanted_test != NULL) && (strcmp(test_state->wanted_test, func) != 0))
+        return 1;
+
+    printf("%s (line %li)\n", func, line);
+    return 0;
+}
+
+int
 TEST_BOUNDED_STRCMP(char *s1, char *s2)
 {
 	/*
@@ -188,9 +198,20 @@ TEST_ASSERT_LIST_EQUAL_impl(TestState * test_state, char *actual_str, List *actu
 // implementation.
 static
 int
-test_run_impl(TestFn * tests[], TestCleanupFn * test_cleanup, bool use_mctx)
+test_run_impl(int argc, char *argv[], TestFn * tests[], TestCleanupFn * test_cleanup, bool use_mctx)
 {
 	TestState	test_state = {0};
+
+    if (argc > 1 && argv != NULL)
+        test_state.wanted_test = argv[1];
+
+    size_t fail_fast = (test_state.wanted_test == NULL) ? 0 : 1;
+
+#ifdef TEST_FAIL_FAST
+    // If TEST_FAIL_FAST is defined, we always fail fast.
+    fail_fast = 1;
+#endif
+
 
 	pg_query_init();
 
@@ -207,10 +228,8 @@ test_run_impl(TestFn * tests[], TestCleanupFn * test_cleanup, bool use_mctx)
 		if (use_mctx)
 			pg_query_exit_memory_context(ctx);
 
-#ifdef TEST_FAIL_FAST
-		if (test_state.failed > 0)
+		if (fail_fast && test_state.failed > 0)
 			break;
-#endif
 	}
 
 	bool		failed = (test_state.failed > 0);
@@ -223,13 +242,13 @@ test_run_impl(TestFn * tests[], TestCleanupFn * test_cleanup, bool use_mctx)
 }
 
 int
-test_run(TestFn * tests[], TestCleanupFn * test_cleanup)
+test_run(int argc, char *argv[], TestFn * tests[], TestCleanupFn * test_cleanup)
 {
-	return test_run_impl(tests, test_cleanup, false);
+	return test_run_impl(argc, argv, tests, test_cleanup, false);
 }
 
 int
-test_run_with_mcxt(TestFn * tests[], TestCleanupFn * test_cleanup)
+test_run_with_mcxt(int argc, char *argv[], TestFn * tests[], TestCleanupFn * test_cleanup)
 {
-	return test_run_impl(tests, test_cleanup, true);
+	return test_run_impl(argc, argv, tests, test_cleanup, true);
 }
