@@ -202,15 +202,21 @@ test_run_impl(int argc, char *argv[], TestFn * tests[], TestCleanupFn * test_cle
 {
 	TestState	test_state = {0};
 
-    if (argc > 1 && argv != NULL)
-        test_state.wanted_test = argv[1];
+	bool fail_fast = false;
 
-    size_t fail_fast = (test_state.wanted_test == NULL) ? 0 : 1;
+	for (size_t i = 1; i < argc; i++)
+	{
+		// This loop only runs if an argument was passed.
+		// That argument will be -ff or a test name, and in both
+		// cases we want to fail fast.
+		fail_fast = true;
 
-#ifdef TEST_FAIL_FAST
-    // If TEST_FAIL_FAST is defined, we always fail fast.
-    fail_fast = 1;
-#endif
+		// If the argument isn't -ff, we assume it's a test name.
+		if (strncmp(argv[i], "-ff", 4) != 0) {
+			test_state.wanted_test = argv[i];
+			break;
+		}
+	}
 
 
 	pg_query_init();

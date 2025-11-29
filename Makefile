@@ -63,9 +63,6 @@ ifeq ($(VALGRIND),1)
 	override CFLAGS += -DUSE_VALGRIND
 	override TEST_CFLAGS += -DUSE_VALGRIND
 endif
-ifeq ($(TEST_FAIL_FAST),1)
-	override TEST_CFLAGS += -DTEST_FAIL_FAST=1
-endif
 
 CLEANLIBS = $(ARLIB)
 CLEANOBJS = $(OBJ_FILES)
