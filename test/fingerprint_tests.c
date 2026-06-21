@@ -1,4 +1,3 @@
-const char* tests[] = {
   "SELECT 1",
   "50fde20626009aba",
   "SELECT 2",
@@ -196,6 +195,3 @@ const char* tests[] = {
   "1a16559b625d7498",
   "ALTER TABLE baz.bar ADD COLUMN c int",
   "2f36adf7ba9689b8",
-};
-
-const size_t testsLength = sizeof(tests)/sizeof(*tests)/2;

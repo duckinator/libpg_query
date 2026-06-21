@@ -5,14 +5,17 @@
 #include <stdlib.h>
 #include <string.h>
 
-#include "fingerprint_tests.c"
-
 int main()
 {
+	char *tests[] = {
+#include "fingerprint_tests.c"
+		NULL
+	};
+
 	size_t i;
 	bool ret_code = 0;
 
-	for (i = 0; i < testsLength; i += 2)
+	for (i = 0; tests[i] != NULL; i += 2)
 	{
 		PgQueryFingerprintResult result = pg_query_fingerprint(tests[i]);
 
@@ -30,7 +33,7 @@ int main()
 		else
 		{
 			ret_code = -1;
-			printf("INVALID result for \"%s\"\nexpected: \"%s\"\nactual: \"%s\"\nactual tokens: ", tests[i], tests[i + 1], result.fingerprint_str);
+			printf("\n\nINVALID result for \"%s\"\nexpected: \"%s\"\nactual: \"%s\"\nactual tokens: ", tests[i], tests[i + 1], result.fingerprint_str);
 			pg_query_fingerprint_with_opts(tests[i], PG_QUERY_PARSE_DEFAULT, true);
 		}
 
