@@ -196,6 +196,5 @@ const char* tests[] = {
   "1a16559b625d7498",
   "ALTER TABLE baz.bar ADD COLUMN c int",
   "2f36adf7ba9689b8",
+  NULL // Trailing NULL to tell the test runner we're done.
 };
-
-const size_t testsLength = sizeof(tests)/sizeof(*tests)/2;

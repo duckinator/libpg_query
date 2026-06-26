@@ -12,7 +12,7 @@ int main()
 	size_t i;
 	bool ret_code = 0;
 
-	for (i = 0; i < testsLength; i += 2)
+	for (i = 0; tests[i]; i += 2)
 	{
 		PgQueryFingerprintResult result = pg_query_fingerprint(tests[i]);
 
