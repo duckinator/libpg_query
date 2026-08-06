@@ -11828,10 +11828,7 @@ _fingerprintCreateRoleStmt(FingerprintContext *ctx, const CreateRoleStmt *node, 
     }
     XXH3_freeState(prev);
   }
-  if (node->role != NULL) {
-    _fingerprintString(ctx, "role");
-    _fingerprintString(ctx, node->role);
-  }
+  // Intentionally ignoring node->role for fingerprinting
 
   if (true) {
     _fingerprintString(ctx, "stmt_type");

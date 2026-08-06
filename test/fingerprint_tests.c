@@ -206,9 +206,9 @@ const char* tests[] = {
 
   // Test normalization of role name during fingerprinting.
   "CREATE ROLE a",
-  "c455633f504f917a",
+  "652129c250e27e46",
   "CREATE ROLE b",
-  "31245d940af9bdb9",
+  "652129c250e27e46",
   "ALTER ROLE some_role RENAME TO some_other_role",
   "af64e7bce9daa307",
   "ALTER ROLE a RENAME TO b",
