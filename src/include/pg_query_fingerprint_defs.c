@@ -4688,10 +4688,7 @@ _fingerprintRoleSpec(FingerprintContext *ctx, const RoleSpec *node, const void *
 {
   // Intentionally ignoring node->location for fingerprinting
 
-  if (node->rolename != NULL) {
-    _fingerprintString(ctx, "rolename");
-    _fingerprintString(ctx, node->rolename);
-  }
+  // Intentionally ignoring node->rolename for fingerprinting
 
   if (true) {
     _fingerprintString(ctx, "roletype");
