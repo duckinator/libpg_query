@@ -203,5 +203,32 @@ const char* tests[] = {
   "1a16559b625d7498",
   "ALTER TABLE baz.bar ADD COLUMN c int",
   "2f36adf7ba9689b8",
+
+  // Test normalization of role name during fingerprinting.
+  "CREATE ROLE a",
+  "c455633f504f917a",
+  "CREATE ROLE b",
+  "31245d940af9bdb9",
+  "ALTER ROLE some_role RENAME TO some_other_role",
+  "af64e7bce9daa307",
+  "ALTER ROLE a RENAME TO b",
+  "260ce435ef1b5be6",
+  "DROP ROLE a",
+  "d8643bfda112eea6",
+  "DROP ROLE b",
+  "8219411c1be5fd07",
+  "DROP ROLE IF EXISTS a",
+  "5aec416bb0c4f1c2",
+  "DROP ROLE IF EXISTS b",
+  "0d3764a091e05317",
+  "GRANT SELECT ON some_table TO some_role",
+  "31905c256338fabc",
+  "GRANT SELECT ON some_table TO some_other_role",
+  "9d27dd2c45e4095f",
+  "REASSIGN OWNED BY old_role TO new_role",
+  "feeba332734ecd26",
+  "REASSIGN OWNED BY role_a TO role_b",
+  "e539478225d4b3dc",
+
   NULL // Trailing NULL to tell the test runner we're done.
 };
