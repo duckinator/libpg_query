@@ -323,7 +323,6 @@ class Generator
     ['PrepareStmt', 'name'] => :skip,
     ['ExecuteStmt', 'name'] => :skip,
     ['DeallocateStmt', 'name'] => :skip,
-    ['TransactionStmt', 'options'] => :skip,
     ['TransactionStmt', 'gid'] => :skip,
     ['TransactionStmt', 'savepoint_name'] => :skip,
     ['CreateFunctionStmt', 'options'] => :skip,

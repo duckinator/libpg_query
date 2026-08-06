@@ -13704,8 +13704,22 @@ _fingerprintTransactionStmt(FingerprintContext *ctx, const TransactionStmt *node
 
   // Intentionally ignoring node->location for fingerprinting
 
-  // Intentionally ignoring node->options for fingerprinting
+  if (node->options != NULL && node->options->length > 0) {
+    XXH3_state_t* prev = XXH3_createState();
+    XXH64_hash_t hash;
 
+    XXH3_copyState(prev, ctx->xxh_state);
+    _fingerprintString(ctx, "options");
+
+    hash = XXH3_64bits_digest(ctx->xxh_state);
+    _fingerprintNode(ctx, node->options, node, "options", depth + 1);
+    if (hash == XXH3_64bits_digest(ctx->xxh_state) && !(list_length(node->options) == 1 && linitial(node->options) == NIL)) {
+      XXH3_copyState(ctx->xxh_state, prev);
+      if (ctx->write_tokens)
+        dlist_delete(dlist_tail_node(&ctx->tokens));
+    }
+    XXH3_freeState(prev);
+  }
   // Intentionally ignoring node->savepoint_name for fingerprinting
 
 }
