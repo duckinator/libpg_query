@@ -13286,10 +13286,7 @@ _fingerprintRenameStmt(FingerprintContext *ctx, const RenameStmt *node, const vo
     _fingerprintString(ctx, "true");
   }
 
-  if (node->newname != NULL) {
-    _fingerprintString(ctx, "newname");
-    _fingerprintString(ctx, node->newname);
-  }
+  // Intentionally ignoring node->newname for fingerprinting
 
   if (node->object != NULL) {
     XXH3_state_t* prev = XXH3_createState();
@@ -13335,10 +13332,7 @@ _fingerprintRenameStmt(FingerprintContext *ctx, const RenameStmt *node, const vo
     _fingerprintString(ctx, _enumToStringObjectType(node->renameType));
   }
 
-  if (node->subname != NULL) {
-    _fingerprintString(ctx, "subname");
-    _fingerprintString(ctx, node->subname);
-  }
+  // Intentionally ignoring node->subname for fingerprinting
 
 }
 

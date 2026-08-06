@@ -343,6 +343,8 @@ class Generator
     ['JsonTablePathSpec', 'location'] => :skip,
     ['VariableSetStmt', 'jumble_args'] => :skip, # TODO: Should we be smarter about using this flag ourselves?
     ['CreateRoleStmt', 'role'] => :skip,
+    ['RenameStmt', 'newname'] => :skip,
+    ['RenameStmt', 'subname'] => :skip,
   }
   INT_TYPES = ['bits32', 'uint32', 'int', 'int32', 'uint16', 'int16', 'Oid', 'Index', 'AttrNumber', 'SubTransactionId', 'RelFileNumber', 'ParseLoc']
   LONG_INT_TYPES = ['long']
